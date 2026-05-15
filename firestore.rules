@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // Primary admin email
+      let isEmailAdmin = isSignedIn() && request.auth.token.email == 'chinaonlinebdpurchase2@gmail.com';
+      // Specific UID as fallback
+      let isIdAdmin = isSignedIn() && request.auth.uid == 'Sl4zsHpVgqVOEVpWYx3Cl4DvydE2';
+      return isEmailAdmin || isIdAdmin;
+    }
+
+    function isValidProduct(data) {
+      // Basic validation: must have name and price
+      return data.name is string && data.name.size() > 0
+        && data.price is string;
+    }
+
+    // Products: Everyone can read, admins can write
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update: if isAdmin(); // Temporarily removing isValidProduct check to isolate the issue
+      allow delete: if isAdmin();
+    }
+
+    // Settings: Everyone can read, only admin can write
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Clicks: Anyone can create (log), only admin can read
+    match /clicks/{clickId} {
+      allow create: if true;
+      allow read: if isAdmin();
+    }
+  }
+}

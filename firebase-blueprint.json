@@ -1,0 +1,55 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Information about a product sourced from Amazon.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "string" },
+        "asin": { "type": "string" },
+        "category": { "type": "string" },
+        "image_url": { "type": "string", "format": "uri" },
+        "affiliate_link": { "type": "string", "format": "uri" },
+        "hidden": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "description", "price", "asin", "category", "image_url", "affiliate_link"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Global application settings.",
+      "type": "object",
+      "properties": {
+        "affiliateTag": { "type": "string" },
+        "featuredCategory": { "type": "string" }
+      }
+    },
+    "ClickEvent": {
+      "title": "Click Event",
+      "description": "Logged click on a Buy Now button.",
+      "type": "object",
+      "properties": {
+        "asin": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of products found by the AI."
+    },
+    "/settings/{settingId}": {
+      "schema": "Setting",
+      "description": "App-wide configuration."
+    },
+    "/clicks/{clickId}": {
+      "schema": "ClickEvent",
+      "description": "Analytics tracking for affiliate links."
+    }
+  }
+}
