@@ -73,8 +73,8 @@ async function startServer() {
     console.log("Serving static files from dist...");
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    // In Express 5, '*' is literal. Use '/*' or '(.*)' to match everything for SPA.
-    app.get("/*", (req, res) => {
+    // In Express 5, use '*all' to match everything for SPA.
+    app.get("*all", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
