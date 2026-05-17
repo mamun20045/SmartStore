@@ -159,6 +159,37 @@ const parsePrice = (priceStr: string | undefined) => {
   };
 };
 
+// Helper function to compress images before saving to Firestore to stay under 1MB limit
+const compressImage = (base64Str: string, maxWidth = 800, maxHeight = 800, quality = 0.6): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxWidth) {
+          height *= maxWidth / width;
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width *= maxHeight / height;
+          height = maxHeight;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+  });
+};
+
 export default function App() {
   const [queryInput, setQueryInput] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -322,7 +353,10 @@ export default function App() {
     highlights: [],
     description_bullets: [],
     video_url: "",
-    images: []
+    images: [],
+    rating: "",
+    review_count: "1",
+    trust_badge: "Curated"
   });
   const productsSectionRef = useRef<HTMLDivElement>(null);
   const categoriesSectionRef = useRef<HTMLDivElement>(null);
@@ -334,20 +368,47 @@ export default function App() {
     if (!files) return;
 
     Array.from(files).forEach((file: File) => {
-      if ((manualProduct.images?.length || 0) >= 10) return;
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setManualProduct(prev => ({
-          ...prev,
-          images: [...(prev.images || []), reader.result as string]
-        }));
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        // Compress image before adding to state
+        const compressedBase64 = await compressImage(base64);
+        
+        setManualProduct(prev => {
+          const currentImages = prev.images || [];
+          if (currentImages.length >= 10) return prev;
+          const newImages = [...currentImages, compressedBase64];
+          return {
+            ...prev,
+            images: newImages,
+            // If main image_url is empty, set it to the first uploaded image
+            image_url: prev.image_url || newImages[0]
+          };
+        });
       };
       reader.readAsDataURL(file);
     });
   };
 
   const handleEditProduct = (product: Product) => {
-    setManualProduct({ ...product });
+    setManualProduct({ 
+      name: "", 
+      brand: "", 
+      price: "", 
+      asin: "", 
+      category: "Smart Home", 
+      image_url: "", 
+      affiliate_link: "", 
+      description: "", 
+      highlights: [], 
+      description_bullets: [], 
+      video_url: "", 
+      images: [], 
+      rating: "5.0",
+      review_count: "1",
+      trust_badge: "Curated",
+      ...product 
+    });
     setIsManualAdding(true);
   };
 
@@ -759,7 +820,7 @@ export default function App() {
       {/* Navbar */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${(scrolled || view === 'product') ? "py-3 bg-[#050b18]/95 backdrop-blur-xl border-b border-white/5 shadow-2xl" : "py-6 bg-transparent"}`}>
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
-          <div className="flex items-center gap-2 group cursor-pointer" onClick={() => { setView('home'); setSelectedProduct(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+          <div className="flex items-center gap-2 group cursor-pointer" onClick={() => { setView('home'); setSelectedProduct(null); setProducts(allProducts); setQueryInput(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
             {settings.logoURL ? (
               <img src={settings.logoURL} alt={settings.storeName} className="h-8 md:h-12 object-contain" />
             ) : (
@@ -770,7 +831,7 @@ export default function App() {
 
           <div className="hidden lg:flex items-center gap-6">
             <button 
-              onClick={() => { setView('home'); setSelectedProduct(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              onClick={() => { setView('home'); setSelectedProduct(null); setProducts(allProducts); setQueryInput(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               className={`text-xs font-bold transition-all tracking-widest uppercase ${view === 'home' ? "text-blue-400 border-b-2 border-blue-400 pb-0.5" : "text-slate-400 hover:text-white"}`}
             >
               Home
@@ -858,7 +919,7 @@ export default function App() {
                    </div>
                 </div>
                 {[
-                  { label: "Home", action: () => { setView('home'); setSelectedProduct(null); window.scrollTo({ top: 0, behavior: "smooth" }); } },
+                  { label: "Home", action: () => { setView('home'); setSelectedProduct(null); setProducts(allProducts); setQueryInput(""); window.scrollTo({ top: 0, behavior: "smooth" }); } },
                   { label: "Category", action: () => navigateToHomeSection(categoriesSectionRef) },
                   { label: "Deals", action: () => navigateToHomeSection(dealsSectionRef) },
                   { label: "New Tech", action: () => navigateToHomeSection(newTechSectionRef) },
@@ -1363,7 +1424,26 @@ export default function App() {
                                  {isDeletingAll ? "Deleting..." : "Clear All"}
                               </button>
                            )}
-                           <button onClick={() => { setManualProduct({ name: "", brand: "", price: "", asin: "", category: "Smart Home", image_url: "", affiliate_link: "", description: "", highlights: [], description_bullets: [], video_url: "", images: [], id: undefined }); setIsManualAdding(true); }} className="px-5 py-3 rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-600/20">
+                           <button onClick={() => { 
+                              setManualProduct({ 
+                                 name: "", 
+                                 brand: "", 
+                                 price: "", 
+                                 asin: "", 
+                                 category: "Smart Home", 
+                                 image_url: "", 
+                                 affiliate_link: "", 
+                                 description: "", 
+                                 highlights: [], 
+                                 description_bullets: [], 
+                                 video_url: "", 
+                                 images: [], 
+                                 rating: "5.0",
+                                 review_count: "1",
+                                 trust_badge: "Curated"
+                              }); 
+                              setIsManualAdding(true); 
+                           }} className="px-5 py-3 rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-600/20">
                               <Plus size={16} /> New Product
                            </button>
                         </div>
@@ -1393,14 +1473,38 @@ export default function App() {
                                     </div>
                                     <div className="space-y-2">
                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Category</label>
-                                       <select value={manualProduct.category} onChange={e => setManualProduct({...manualProduct, category: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all">
-                                          {CATEGORIES.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                       <select 
+                                          value={manualProduct.category} 
+                                          onChange={e => setManualProduct({...manualProduct, category: e.target.value})} 
+                                          className="w-full bg-slate-900 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all"
+                                       >
+                                          {CATEGORIES.map(c => (
+                                             <option key={c.id} value={c.name} className="bg-slate-900 text-white">
+                                                {c.name}
+                                             </option>
+                                          ))}
                                        </select>
                                     </div>
                                  </div>
-                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Image URL</label>
-                                    <input type="text" value={manualProduct.image_url} onChange={e => setManualProduct({...manualProduct, image_url: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all font-light" placeholder="https://..." />
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Main Product Image (URL preferred)</label>
+                                       <input type="text" value={manualProduct.image_url} onChange={e => setManualProduct({...manualProduct, image_url: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all font-light" placeholder="https://..." />
+                                    </div>
+                                    <div className="space-y-2">
+                                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Video Link (YouTube/Direct)</label>
+                                       <input type="text" value={manualProduct.video_url} onChange={e => setManualProduct({...manualProduct, video_url: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all font-light" placeholder="https://..." />
+                                    </div>
+                                 </div>
+                                 <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Brand</label>
+                                       <input type="text" value={manualProduct.brand} onChange={e => setManualProduct({...manualProduct, brand: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all font-light" placeholder="e.g. Apple" />
+                                    </div>
+                                    <div className="space-y-2">
+                                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Rating (0-5)</label>
+                                       <input type="text" value={manualProduct.rating} onChange={e => setManualProduct({...manualProduct, rating: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all font-light" placeholder="4.9" />
+                                    </div>
                                  </div>
                               </div>
                               <div className="space-y-6">
@@ -1410,14 +1514,72 @@ export default function App() {
                                  </div>
                                  <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Description</label>
-                                    <textarea value={manualProduct.description} onChange={e => setManualProduct({...manualProduct, description: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all h-32 resize-none font-light leading-relaxed" placeholder="Short pitch..." />
+                                    <textarea value={manualProduct.description} onChange={e => setManualProduct({...manualProduct, description: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all h-40 resize-none font-light leading-relaxed" placeholder="Short pitch..." />
                                  </div>
                               </div>
                            </div>
 
-                           <div className="pt-6">
-                              <button onClick={handleManualAdd} className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-emerald-600/20 transition-all active:scale-95">
-                                 {manualProduct.id ? 'Save Changes' : 'Publish Product'}
+                           {/* Product Gallery Section */}
+                           <div className="pt-8 border-t border-white/5 space-y-6">
+                              <div className="flex justify-between items-end">
+                                 <div className="space-y-1">
+                                    <h5 className="text-white font-black uppercase text-xs tracking-widest">Product Gallery</h5>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Upload up to 10 photos of this item</p>
+                                 </div>
+                                 <label className="px-5 py-3 rounded-xl bg-blue-600 text-white hover:bg-blue-500 transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-2 cursor-pointer shadow-lg shadow-blue-600/20">
+                                    <ImagePlus size={16} /> Upload Photos
+                                    <input 
+                                       type="file" 
+                                       multiple 
+                                       accept="image/*" 
+                                       className="hidden" 
+                                       onChange={handleImageUpload}
+                                       disabled={(manualProduct.images?.length || 0) >= 10}
+                                    />
+                                 </label>
+                              </div>
+
+                              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                                 {(manualProduct.images || []).map((img, idx) => (
+                                    <div key={idx} className="aspect-square rounded-[24px] bg-white/[0.03] border border-white/5 relative group overflow-hidden">
+                                       <img src={img} className="w-full h-full object-contain p-4" />
+                                       <div className="absolute inset-0 bg-slate-950/80 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-2">
+                                          <button 
+                                             onClick={() => setManualProduct({...manualProduct, image_url: img})}
+                                             className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${manualProduct.image_url === img ? 'bg-emerald-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                                          >
+                                             {manualProduct.image_url === img ? 'MAIN IMAGE' : 'SET AS MAIN'}
+                                          </button>
+                                          <button 
+                                             onClick={() => {
+                                                const newImages = [...(manualProduct.images || [])];
+                                                newImages.splice(idx, 1);
+                                                setManualProduct({...manualProduct, images: newImages, image_url: manualProduct.image_url === img ? (newImages[0] || "") : manualProduct.image_url});
+                                             }}
+                                             className="px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white transition-all text-[8px] font-black uppercase tracking-widest"
+                                          >
+                                             REMOVE
+                                          </button>
+                                       </div>
+                                       {manualProduct.image_url === img && (
+                                          <div className="absolute top-2 left-2 px-2 py-1 bg-emerald-500 rounded-full text-[6px] font-black text-white uppercase tracking-widest">
+                                             Thumbnail
+                                          </div>
+                                       )}
+                                    </div>
+                                 ))}
+                                 {Array.from({ length: 10 - (manualProduct.images?.length || 0) }).map((_, i) => (
+                                    <div key={`empty-${i}`} className="aspect-square rounded-[24px] bg-white/[0.01] border border-dashed border-white/10 flex flex-col items-center justify-center">
+                                       <ImagePlus size={20} className="text-slate-800 mb-2" />
+                                       <span className="text-[8px] font-black text-slate-700 uppercase tracking-widest">Photo { (manualProduct.images?.length || 0) + i + 1 }</span>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+
+                           <div className="pt-10 border-t border-white/5">
+                              <button onClick={handleManualAdd} className="w-full py-6 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-2xl shadow-emerald-600/20 transition-all active:scale-[0.98]">
+                                 {manualProduct.id ? 'Save Product Updates' : 'Publish New Item'}
                               </button>
                            </div>
                         </div>
