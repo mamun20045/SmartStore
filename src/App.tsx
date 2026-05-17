@@ -141,7 +141,7 @@ const CATEGORIES = [
 
 const DEFAULT_SETTINGS: Settings = {
   affiliateTag: "smartgadget-20",
-  storeName: "Smart Gadget",
+  storeName: "USA Smart Gadget",
   logoURL: "",
   adsterraKey: "5f6df134510fb4c124bb45e88962c59d",
   adsterraCode: ""
@@ -829,7 +829,10 @@ export default function App() {
             ) : (
               <img src="/logo.png" alt="Smart Gadget" className="h-8 md:h-12 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
             )}
-            <span className="hidden text-base md:text-xl font-display font-black text-white tracking-tight uppercase">{settings.storeName?.split(' ')[0] || 'Smart'}<span className="text-blue-500">{settings.storeName?.split(' ')[1] || 'Gadget'}</span></span>
+            <span className="text-sm md:text-xl font-display font-black text-white tracking-tight uppercase">
+              {settings.storeName?.split(' ').slice(0, -1).join(' ') || 'Smart'}
+              <span className="text-blue-500 ml-1">{settings.storeName?.split(' ').slice(-1) || 'Gadget'}</span>
+            </span>
           </div>
 
           <div className="hidden lg:flex items-center gap-6">
@@ -982,7 +985,7 @@ export default function App() {
         </section>
 
         {/* Adsterra Advertisement Banner - Slim Horizontal Slot */}
-        <div className="w-full mt-12 mb-12 flex justify-center px-4">
+        <div className="w-full mt-20 mb-20 flex justify-center px-4">
           <div className="w-full max-w-[1240px] bg-[#0a1120] border border-slate-800/30 rounded-xl flex flex-col items-center justify-center relative overflow-hidden group min-h-[90px] shadow-lg transition-all">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-emerald-500/5 opacity-20" />
             
@@ -1014,7 +1017,7 @@ export default function App() {
         </div>
 
         {/* Product Grid */}
-        <section ref={productsSectionRef} className="mt-12 mb-32 scroll-mt-24">
+        <section ref={productsSectionRef} className="mt-20 mb-32 scroll-mt-24">
           <div className="mb-8">
             <h2 className="text-2xl font-black uppercase tracking-tight text-white font-sans">Featured Products</h2>
           </div>
