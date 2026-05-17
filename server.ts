@@ -62,6 +62,7 @@ async function startServer() {
 
   // Vite integration
   if (process.env.NODE_ENV !== "production") {
+    console.log("Loading Vite dev middleware...");
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -69,20 +70,21 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.resolve("dist");
+    console.log("Serving static files from dist...");
+    const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      const indexPath = path.join(distPath, "index.html");
-      res.sendFile(indexPath);
+    // In Express 5, '*' is literal. Use '/*' or '(.*)' to match everything for SPA.
+    app.get("/*", (req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
   });
 }
 
 startServer().catch(err => {
-  console.error("Failed to start server:", err);
+  console.error("CRITICAL: Server failed to start:", err);
   process.exit(1);
 });
