@@ -957,7 +957,7 @@ export default function App() {
       {view === 'home' ? (
         <main className="relative z-10 pt-32 px-6 pb-48 max-w-7xl mx-auto">
         {/* Categories Section */}
-        <section ref={categoriesSectionRef} className="mb-32 scroll-mt-24">
+        <section ref={categoriesSectionRef} className="mb-12 scroll-mt-24">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-black uppercase tracking-tight text-white mb-6">BROWSE SMART CATEGORIES</h2>
             <p className="text-slate-400 text-sm font-light">Find the Perfect Tech for Every Corner of Your Life.</p>
@@ -985,7 +985,7 @@ export default function App() {
         </section>
 
         {/* Adsterra Advertisement Banner - Slim Horizontal Slot */}
-        <div className="w-full mt-40 mb-40 flex justify-center px-4">
+        <div className="w-full mt-12 mb-12 flex justify-center px-4">
           <div className="w-full max-w-[1240px] bg-[#0a1120] border border-slate-800/30 rounded-xl flex flex-col items-center justify-center relative overflow-hidden group min-h-[90px] shadow-lg transition-all">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-emerald-500/5 opacity-20" />
             
@@ -1017,7 +1017,7 @@ export default function App() {
         </div>
 
         {/* Product Grid */}
-        <section ref={productsSectionRef} className="mt-40 mb-48 scroll-mt-24">
+        <section ref={productsSectionRef} className="mt-12 mb-48 scroll-mt-24">
           <div className="mb-16">
             <h2 className="text-2xl font-black uppercase tracking-tight text-white font-sans">Featured Products</h2>
           </div>
