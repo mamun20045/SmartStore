@@ -143,7 +143,7 @@ const DEFAULT_SETTINGS: Settings = {
   affiliateTag: "smartgadget-20",
   storeName: "USA Smart Gadget",
   logoURL: "",
-  adsterraKey: "5f6df134510fb4c124bb45e88962c59d",
+  adsterraKey: "bec4d3245746ed2be5b9f8aa8cd14ce2",
   adsterraCode: ""
 };
 
@@ -992,14 +992,27 @@ export default function App() {
             <div id="ad-slot-horizontal" className="relative z-10 w-full flex justify-center items-center">
                <div className="flex flex-col items-center">
                   <span className="text-[6px] text-slate-700 uppercase font-black tracking-[0.2em] mb-0.5">Advertisement</span>
-                  <div className="w-full overflow-hidden flex items-center justify-center border border-dashed border-slate-800/10 px-4 py-1 rounded-lg bg-slate-900/10 min-h-[90px]">
-                     <AdsterraBanner 
-                        id="adsterra-banner-1" 
-                        height={90} 
-                        width={728} 
-                        atKey={settings.adsterraKey || DEFAULT_SETTINGS.adsterraKey || ''} 
-                        adCode={settings.adsterraCode}
-                     />
+                  <div className="w-full overflow-hidden flex items-center justify-center border border-dashed border-slate-800/10 px-4 py-1 rounded-lg bg-slate-900/10 min-h-[50px] md:min-h-[90px]">
+                     {/* Desktop Banner */}
+                     <div className="hidden md:block">
+                        <AdsterraBanner 
+                           id="adsterra-banner-desktop" 
+                           height={90} 
+                           width={728} 
+                           atKey={settings.adsterraKey || DEFAULT_SETTINGS.adsterraKey || ''} 
+                           adCode={settings.adsterraCode}
+                        />
+                     </div>
+                     {/* Mobile Banner */}
+                     <div className="block md:hidden">
+                        <AdsterraBanner 
+                           id="adsterra-banner-mobile" 
+                           height={50} 
+                           width={320} 
+                           atKey={settings.adsterraKey || DEFAULT_SETTINGS.adsterraKey || ''} 
+                           adCode={settings.adsterraCode}
+                        />
+                     </div>
                      {!(settings.adsterraKey || DEFAULT_SETTINGS.adsterraKey || settings.adsterraCode) && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                            <span className="text-white font-mono text-[8px] tracking-[0.6em] uppercase opacity-40">
@@ -1816,30 +1829,50 @@ export default function App() {
                                      </div>
                                   </div>
 
-                                  <div className="space-y-3">
-                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Adsterra Full Script (Optional Override)</label>
-                                     <textarea 
-                                        value={settings.adsterraCode || ''}
-                                        onChange={(e) => setSettings({ ...settings, adsterraCode: e.target.value })}
-                                        className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-4 text-white font-mono text-[10px] focus:border-emerald-500 outline-none transition-all min-h-[100px] placeholder:text-slate-700"
-                                        placeholder="Paste full Adsterra code here (from 'GET CODE')"
-                                     />
-                                  </div>
-
-                                  <div className="space-y-3">
-                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Adsterra Key (728x90 Banner)</label>
-                                     <div className="relative group">
-                                        <input 
-                                           type="text" 
-                                           value={settings.adsterraKey || ''}
-                                           onChange={(e) => setSettings({ ...settings, adsterraKey: e.target.value })}
-                                           className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 text-white font-mono text-base focus:border-emerald-500 outline-none transition-all placeholder:text-slate-700"
-                                           placeholder="Enter Adsterra Key"
-                                        />
-                                        <DollarSign className="absolute right-6 top-1/2 -translate-y-1/2 text-emerald-500/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                                  <div className="space-y-6 mt-12 bg-emerald-500/5 border border-emerald-500/10 rounded-3xl p-8">
+                                     <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                                           <DollarSign className="text-emerald-500" size={20} />
+                                        </div>
+                                        <div className="text-left">
+                                           <h4 className="text-lg font-black text-white uppercase tracking-tight">Advertisement Configuration</h4>
+                                           <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Manage your Adsterra scripts</p>
+                                        </div>
                                      </div>
-                                 </div>
-                              </div>
+                                     
+                                     <div className="space-y-6">
+                                        <div className="space-y-3 text-left">
+                                           <label className="text-[10px] font-black uppercase tracking-widest text-emerald-500 block">PASTE AD SCRIPT CODE HERE (BOX)</label>
+                                           <div className="relative">
+                                              <textarea 
+                                                 value={settings.adsterraCode || ''}
+                                                 onChange={(e) => setSettings({ ...settings, adsterraCode: e.target.value })}
+                                                 className="w-full bg-slate-950/50 border border-emerald-500/20 rounded-2xl px-6 py-6 text-emerald-400 font-mono text-xs focus:border-emerald-500 outline-none transition-all min-h-[160px] placeholder:text-slate-800"
+                                                 placeholder="পাস্ট করুন আপনার অ্যাড স্ক্রিপ্ট কোড এখানে (Paste full Adsterra code here)..."
+                                              />
+                                              <div className="absolute top-4 right-4 animate-pulse">
+                                                 <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                              </div>
+                                           </div>
+                                           <p className="text-[9px] text-slate-600 uppercase font-bold tracking-wider">Note: This script will run in the advertisement slot. It overrides the Key below.</p>
+                                        </div>
+
+                                        <div className="space-y-3 text-left">
+                                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Or use Adsterra Key (728x90 Banner)</label>
+                                           <div className="relative group">
+                                              <input 
+                                                 type="text" 
+                                                 value={settings.adsterraKey || ''}
+                                                 onChange={(e) => setSettings({ ...settings, adsterraKey: e.target.value })}
+                                                 className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 text-white font-mono text-base focus:border-emerald-500 outline-none transition-all placeholder:text-slate-700"
+                                                 placeholder="Enter Adsterra Key (e.g. bec4d3245746ed2be5b9f8aa8cd14ce2)"
+                                              />
+                                              <DollarSign className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                                           </div>
+                                        </div>
+                                     </div>
+                                  </div>
+                               </div>
 
                               <div className="space-y-3">
                                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Store Logo</label>

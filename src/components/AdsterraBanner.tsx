@@ -16,7 +16,12 @@ const AdsterraBanner: React.FC<AdsterraBannerProps> = ({ id, height, width, atKe
   if (adCode) {
     // Inject the provided code directly
     adHtml = `
+      <!DOCTYPE html>
       <html>
+        <head>
+           <meta charset="UTF-8">
+           <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
         <body style="margin:0; padding:0; display:flex; align-items:center; justify-content:center; background: transparent;">
           ${adCode}
         </body>
@@ -25,7 +30,12 @@ const AdsterraBanner: React.FC<AdsterraBannerProps> = ({ id, height, width, atKe
   } else {
     // Generate from key
     adHtml = `
+      <!DOCTYPE html>
       <html>
+        <head>
+           <meta charset="UTF-8">
+           <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
         <body style="margin:0; padding:0; display:flex; align-items:center; justify-content:center; background: transparent;">
           <script type="text/javascript">
             atOptions = {
@@ -36,7 +46,7 @@ const AdsterraBanner: React.FC<AdsterraBannerProps> = ({ id, height, width, atKe
               'params' : {}
             };
           </script>
-          <script type="text/javascript" src="//www.topcreativeformat.com/${atKey}/invoke.js"></script>
+          <script type="text/javascript" src="https://www.highperformanceformat.com/${atKey}/invoke.js"></script>
         </body>
       </html>
     `;
@@ -51,6 +61,7 @@ const AdsterraBanner: React.FC<AdsterraBannerProps> = ({ id, height, width, atKe
       height={height}
       style={{ border: 'none', overflow: 'hidden', background: 'transparent' }}
       scrolling="no"
+      sandbox="allow-scripts allow-popups allow-forms allow-same-origin allow-popups-to-escape-sandbox"
     />
   );
 };
