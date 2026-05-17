@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import AdsterraBanner from "./components/AdsterraBanner";
 import { 
   Search, 
   Smartphone, 
@@ -141,7 +142,9 @@ const CATEGORIES = [
 const DEFAULT_SETTINGS: Settings = {
   affiliateTag: "smartgadget-20",
   storeName: "USA Smart Gadget",
-  logoURL: ""
+  logoURL: "",
+  adsterraKey: "5f6df134510fb4c124bb45e88962c59d",
+  adsterraCode: ""
 };
 
 const parsePrice = (priceStr: string | undefined) => {
@@ -658,7 +661,7 @@ export default function App() {
       try {
         const settingsDoc = await getDoc(doc(db, "settings", "global"));
         if (settingsDoc.exists()) {
-          setSettings(settingsDoc.data() as Settings);
+          setSettings({ ...DEFAULT_SETTINGS, ...settingsDoc.data() } as Settings);
         } else if (isAdmin(user)) {
           await setDoc(doc(db, "settings", "global"), DEFAULT_SETTINGS);
         }
@@ -951,8 +954,8 @@ export default function App() {
       {view === 'home' ? (
         <main className="relative z-10 pt-24 px-6 pb-24 max-w-7xl mx-auto">
         {/* Categories Section */}
-        <section ref={categoriesSectionRef} className="mb-32 scroll-mt-24">
-          <div className="text-center mb-12">
+        <section ref={categoriesSectionRef} className="mb-0 scroll-mt-24">
+          <div className="text-center mb-8">
             <h2 className="text-3xl font-black uppercase tracking-tight text-white mb-2">BROWSE SMART CATEGORIES</h2>
             <p className="text-slate-400 text-sm font-light">Find the Perfect Tech for Every Corner of Your Life.</p>
           </div>
@@ -978,10 +981,42 @@ export default function App() {
           </div>
         </section>
 
+        {/* Adsterra Advertisement Banner - Slim Horizontal Slot */}
+        <div className="w-full mb-1 flex justify-center px-4">
+          <div className="w-full max-w-[1240px] bg-[#0a1120] border border-slate-800/30 rounded-xl flex flex-col items-center justify-center relative overflow-hidden group min-h-[90px] shadow-lg transition-all">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-emerald-500/5 opacity-20" />
+            
+            <div id="ad-slot-horizontal" className="relative z-10 w-full flex justify-center items-center">
+               <div className="flex flex-col items-center">
+                  <span className="text-[6px] text-slate-700 uppercase font-black tracking-[0.2em] mb-0.5">Advertisement</span>
+                  <div className="w-full overflow-hidden flex items-center justify-center border border-dashed border-slate-800/10 px-4 py-1 rounded-lg bg-slate-900/10 min-h-[90px]">
+                     <AdsterraBanner 
+                        id="adsterra-banner-1" 
+                        height={90} 
+                        width={728} 
+                        atKey={settings.adsterraKey || DEFAULT_SETTINGS.adsterraKey || ''} 
+                        adCode={settings.adsterraCode}
+                     />
+                     {!(settings.adsterraKey || DEFAULT_SETTINGS.adsterraKey || settings.adsterraCode) && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                           <span className="text-white font-mono text-[8px] tracking-[0.6em] uppercase opacity-40">
+                              Insert Adsterra Key or Script in Admin Settings
+                           </span>
+                        </div>
+                     )}
+                  </div>
+               </div>
+            </div>
+
+            {/* Subtle glow effect */}
+            <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+          </div>
+        </div>
+
         {/* Product Grid */}
-        <section ref={productsSectionRef} className="mb-32 scroll-mt-24">
-          <div className="mb-12">
-            <h2 className="text-2xl font-black uppercase tracking-tight text-white">Featured Products</h2>
+        <section ref={productsSectionRef} className="mt-1 mb-32 scroll-mt-24">
+          <div className="mb-8">
+            <h2 className="text-2xl font-black uppercase tracking-tight text-white font-sans">Featured Products</h2>
           </div>
 
           {isSearching ? (
@@ -1766,16 +1801,40 @@ export default function App() {
                                  </div>
                                  <div className="space-y-3">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Amazon Associate ID</label>
-                                    <div className="relative group">
-                                       <input 
-                                          type="text" 
-                                          value={settings.affiliateTag}
-                                          onChange={(e) => setSettings({ ...settings, affiliateTag: e.target.value })}
-                                          className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 text-white font-mono text-base focus:border-blue-500 outline-none transition-all placeholder:text-slate-700"
-                                          placeholder="YOUR_ID-21"
-                                       />
-                                       <Zap className="absolute right-6 top-1/2 -translate-y-1/2 text-blue-500/20 group-focus-within:text-blue-500 transition-colors" size={20} />
-                                    </div>
+                                     <div className="relative group">
+                                        <input 
+                                           type="text" 
+                                           value={settings.affiliateTag}
+                                           onChange={(e) => setSettings({ ...settings, affiliateTag: e.target.value })}
+                                           className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 text-white font-mono text-base focus:border-blue-500 outline-none transition-all placeholder:text-slate-700"
+                                           placeholder="YOUR_ID-21"
+                                        />
+                                        <Zap className="absolute right-6 top-1/2 -translate-y-1/2 text-blue-500/20 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                     </div>
+                                  </div>
+
+                                  <div className="space-y-3">
+                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Adsterra Full Script (Optional Override)</label>
+                                     <textarea 
+                                        value={settings.adsterraCode || ''}
+                                        onChange={(e) => setSettings({ ...settings, adsterraCode: e.target.value })}
+                                        className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-4 text-white font-mono text-[10px] focus:border-emerald-500 outline-none transition-all min-h-[100px] placeholder:text-slate-700"
+                                        placeholder="Paste full Adsterra code here (from 'GET CODE')"
+                                     />
+                                  </div>
+
+                                  <div className="space-y-3">
+                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Adsterra Key (728x90 Banner)</label>
+                                     <div className="relative group">
+                                        <input 
+                                           type="text" 
+                                           value={settings.adsterraKey || ''}
+                                           onChange={(e) => setSettings({ ...settings, adsterraKey: e.target.value })}
+                                           className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 text-white font-mono text-base focus:border-emerald-500 outline-none transition-all placeholder:text-slate-700"
+                                           placeholder="Enter Adsterra Key"
+                                        />
+                                        <DollarSign className="absolute right-6 top-1/2 -translate-y-1/2 text-emerald-500/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                                     </div>
                                  </div>
                               </div>
 

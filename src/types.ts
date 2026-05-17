@@ -27,6 +27,8 @@ export interface Settings {
   storeName?: string;
   logoURL?: string;
   featuredCategory?: string;
+  adsterraKey?: string;
+  adsterraCode?: string;
 }
 
 export interface ClickEvent {
