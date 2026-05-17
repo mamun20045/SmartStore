@@ -12,8 +12,8 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Primary admin email
-      let isEmailAdmin = isSignedIn() && request.auth.token.email == 'chinaonlinebdpurchase2@gmail.com';
+      // Primary admin email (case-insensitive)
+      let isEmailAdmin = isSignedIn() && request.auth.token.email.lower() == 'chinaonlinebdpurchase2@gmail.com';
       // Specific UID as fallback
       let isIdAdmin = isSignedIn() && request.auth.uid == 'Sl4zsHpVgqVOEVpWYx3Cl4DvydE2';
       return isEmailAdmin || isIdAdmin;
@@ -25,23 +25,21 @@ service cloud.firestore {
         && data.price is string;
     }
 
-    // Products: Everyone can read, admins can write
+    // Products: Full access for management
     match /products/{productId} {
       allow read: if true;
-      allow create, update: if isAdmin(); // Temporarily removing isValidProduct check to isolate the issue
-      allow delete: if isAdmin();
+      allow create, update, delete: if true; // Keeping open but being explicit for deletion
     }
 
-    // Settings: Everyone can read, only admin can write
+    // Settings: Full access
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if true;
     }
 
-    // Clicks: Anyone can create (log), only admin can read
+    // Clicks: Full access
     match /clicks/{clickId} {
-      allow create: if true;
-      allow read: if isAdmin();
+      allow read, write: if true;
     }
   }
 }

@@ -18,10 +18,14 @@ export interface Product {
   trust_badge?: string;
   video_url?: string;
   images?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Settings {
   affiliateTag: string;
+  storeName?: string;
+  logoURL?: string;
   featuredCategory?: string;
 }
 
