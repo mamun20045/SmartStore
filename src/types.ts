@@ -29,6 +29,8 @@ export interface Settings {
   featuredCategory?: string;
   adsterraKey?: string;
   adsterraCode?: string;
+  adsterraKey2?: string;
+  adsterraCode2?: string;
 }
 
 export interface ClickEvent {

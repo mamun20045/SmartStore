@@ -3,11 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="adsterra-verification" content="verification_hash_here" />
     <title>My Google AI Studio App</title>
   </head>
   <body>
     <div id="root"></div>
     <script>
+      // Service Worker Registration for Adsterra/Push Notifications
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').then(function(reg) {
+            console.log('SW registered:', reg.scope);
+          }).catch(function(err) {
+            console.log('SW failed:', err);
+          });
+        });
+      }
+
       // Fix for "Cannot set property fetch of #<Window> which has only a getter"
       (function() {
         try {

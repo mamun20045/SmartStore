@@ -144,7 +144,9 @@ const DEFAULT_SETTINGS: Settings = {
   storeName: "USA Smart Gadget",
   logoURL: "",
   adsterraKey: "bec4d3245746ed2be5b9f8aa8cd14ce2",
-  adsterraCode: ""
+  adsterraCode: "",
+  adsterraKey2: "",
+  adsterraCode2: ""
 };
 
 const parsePrice = (priceStr: string | undefined) => {
@@ -984,48 +986,88 @@ export default function App() {
           </div>
         </section>
 
-        {/* Adsterra Advertisement Banner - Slim Horizontal Slot */}
+        {/* Adsterra Advertisement Banners - Dual Slot on Desktop */}
         <div className="w-full mt-8 mb-8 flex justify-center px-4">
-          <div className="w-full max-w-[1240px] bg-[#0a1120] border border-slate-800/30 rounded-xl flex flex-col items-center justify-center relative overflow-hidden group min-h-[90px] shadow-lg transition-all">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-emerald-500/5 opacity-20" />
-            
-            <div id="ad-slot-horizontal" className="relative z-10 w-full flex justify-center items-center">
-               <div className="flex flex-col items-center">
-                  <span className="text-[6px] text-slate-700 uppercase font-black tracking-[0.2em] mb-0.5">Advertisement</span>
-                  <div className="w-full overflow-hidden flex items-center justify-center border border-dashed border-slate-800/10 px-4 py-1 rounded-lg bg-slate-900/10 min-h-[50px] md:min-h-[90px]">
-                     {/* Desktop Banner */}
-                     <div className="hidden md:block">
-                        <AdsterraBanner 
-                           id="adsterra-banner-desktop" 
-                           height={90} 
-                           width={728} 
-                           atKey={settings.adsterraKey || DEFAULT_SETTINGS.adsterraKey || ''} 
-                           adCode={settings.adsterraCode}
-                        />
-                     </div>
-                     {/* Mobile Banner */}
-                     <div className="block md:hidden">
-                        <AdsterraBanner 
-                           id="adsterra-banner-mobile" 
-                           height={50} 
-                           width={320} 
-                           atKey={settings.adsterraKey || DEFAULT_SETTINGS.adsterraKey || ''} 
-                           adCode={settings.adsterraCode}
-                        />
-                     </div>
-                     {!(settings.adsterraKey || DEFAULT_SETTINGS.adsterraKey || settings.adsterraCode) && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                           <span className="text-white font-mono text-[8px] tracking-[0.6em] uppercase opacity-40">
-                              Insert Adsterra Key or Script in Admin Settings
-                           </span>
+          <div className="w-full max-w-[1550px] flex flex-col lg:flex-row gap-6 justify-center items-center">
+            {/* Slot 1 */}
+            <div className="w-full lg:w-1/2 bg-[#0a1120] border border-slate-800/30 rounded-xl flex flex-col items-center justify-center relative overflow-hidden group min-h-[90px] shadow-lg transition-all">
+               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-emerald-500/5 opacity-20" />
+               <div className="relative z-10 w-full flex justify-center items-center">
+                  <div className="flex flex-col items-center">
+                     <span className="text-[6px] text-slate-700 uppercase font-black tracking-[0.2em] mb-0.5">Advertisement Slot 1</span>
+                     <div className="w-full overflow-hidden flex items-center justify-center border border-dashed border-slate-800/10 px-4 py-1 rounded-lg bg-slate-900/10 min-h-[50px] md:min-h-[90px]">
+                        {/* Desktop Banner */}
+                        <div className="hidden md:block">
+                           <AdsterraBanner 
+                              id="adsterra-banner-desktop-1" 
+                              height={90} 
+                              width={728} 
+                              atKey={settings.adsterraKey || DEFAULT_SETTINGS.adsterraKey || ''} 
+                              adCode={settings.adsterraCode}
+                           />
                         </div>
-                     )}
+                        {/* Mobile Banner */}
+                        <div className="block md:hidden">
+                           <AdsterraBanner 
+                              id="adsterra-banner-mobile-1" 
+                              height={50} 
+                              width={320} 
+                              atKey={settings.adsterraKey || DEFAULT_SETTINGS.adsterraKey || ''} 
+                              adCode={settings.adsterraCode}
+                           />
+                        </div>
+                        {!(settings.adsterraKey || DEFAULT_SETTINGS.adsterraKey || settings.adsterraCode) && (
+                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                              <span className="text-white font-mono text-[8px] tracking-[0.6em] uppercase opacity-40">
+                                 Insert Adsterra Key or Script 1
+                              </span>
+                           </div>
+                        )}
+                     </div>
                   </div>
                </div>
+               <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             </div>
 
-            {/* Subtle glow effect */}
-            <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            {/* Slot 2 */}
+            <div className="w-full lg:w-1/2 bg-[#0a1120] border border-slate-800/30 rounded-xl flex flex-col items-center justify-center relative overflow-hidden group min-h-[90px] shadow-lg transition-all">
+               <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-blue-500/5 opacity-20" />
+               <div className="relative z-10 w-full flex justify-center items-center">
+                  <div className="flex flex-col items-center">
+                     <span className="text-[6px] text-slate-700 uppercase font-black tracking-[0.2em] mb-0.5">Advertisement Slot 2</span>
+                     <div className="w-full overflow-hidden flex items-center justify-center border border-dashed border-slate-800/10 px-4 py-1 rounded-lg bg-slate-900/10 min-h-[50px] md:min-h-[90px]">
+                        {/* Desktop Banner */}
+                        <div className="hidden md:block">
+                           <AdsterraBanner 
+                              id="adsterra-banner-desktop-2" 
+                              height={90} 
+                              width={728} 
+                              atKey={settings.adsterraKey2 || DEFAULT_SETTINGS.adsterraKey2 || ''} 
+                              adCode={settings.adsterraCode2}
+                           />
+                        </div>
+                        {/* Mobile Banner */}
+                        <div className="block md:hidden">
+                           <AdsterraBanner 
+                              id="adsterra-banner-mobile-2" 
+                              height={50} 
+                              width={320} 
+                              atKey={settings.adsterraKey2 || DEFAULT_SETTINGS.adsterraKey2 || ''} 
+                              adCode={settings.adsterraCode2}
+                           />
+                        </div>
+                        {!(settings.adsterraKey2 || DEFAULT_SETTINGS.adsterraKey2 || settings.adsterraCode2) && (
+                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                              <span className="text-white font-mono text-[8px] tracking-[0.6em] uppercase opacity-40">
+                                 Insert Adsterra Key or Script 2
+                              </span>
+                           </div>
+                        )}
+                     </div>
+                  </div>
+               </div>
+               <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            </div>
           </div>
         </div>
 
@@ -1220,7 +1262,7 @@ export default function App() {
           </div>
         </section>
       </main>
-      ) : view === 'admin' ? (
+      ) : view === 'admin' ? ( /* ADMIN OK */
         !isAdmin(user) ? (
           /* Admin Login Prompt */
           <main className="pt-36 bg-[#050b18] min-h-screen flex items-center justify-center px-4 relative z-20">
@@ -1794,7 +1836,7 @@ export default function App() {
                )}
 
                {adminSubView === 'settings' && (
-                  <div className="max-w-2xl animate-in fade-in duration-500">
+                  <div className="max-w-5xl animate-in fade-in duration-500">
                      <div className="bg-[#0a1120] border border-white/5 rounded-[32px] p-10 shadow-2xl relative overflow-hidden">
                         <div className="absolute top-[-10%] right-[-10%] opacity-[0.03] pointer-events-none">
                            <SettingsIcon size={300} />
@@ -1828,54 +1870,92 @@ export default function App() {
                                         <Zap className="absolute right-6 top-1/2 -translate-y-1/2 text-blue-500/20 group-focus-within:text-blue-500 transition-colors" size={20} />
                                      </div>
                                   </div>
-
-                                  <div className="space-y-6 mt-12 bg-emerald-500/5 border border-emerald-500/10 rounded-3xl p-8">
-                                     <div className="flex items-center gap-3 mb-2">
-                                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                                           <DollarSign className="text-emerald-500" size={20} />
-                                        </div>
-                                        <div className="text-left">
-                                           <h4 className="text-lg font-black text-white uppercase tracking-tight">Advertisement Configuration</h4>
-                                           <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Manage your Adsterra scripts</p>
-                                        </div>
-                                     </div>
-                                     
-                                     <div className="space-y-6">
-                                        <div className="space-y-3 text-left">
-                                           <label className="text-[10px] font-black uppercase tracking-widest text-emerald-500 block">PASTE AD SCRIPT CODE HERE (BOX)</label>
-                                           <div className="relative">
-                                              <textarea 
-                                                 value={settings.adsterraCode || ''}
-                                                 onChange={(e) => setSettings({ ...settings, adsterraCode: e.target.value })}
-                                                 className="w-full bg-slate-950/50 border border-emerald-500/20 rounded-2xl px-6 py-6 text-emerald-400 font-mono text-xs focus:border-emerald-500 outline-none transition-all min-h-[160px] placeholder:text-slate-800"
-                                                 placeholder="পাস্ট করুন আপনার অ্যাড স্ক্রিপ্ট কোড এখানে (Paste full Adsterra code here)..."
-                                              />
-                                              <div className="absolute top-4 right-4 animate-pulse">
-                                                 <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                              </div>
-                                           </div>
-                                           <p className="text-[9px] text-slate-600 uppercase font-bold tracking-wider">Note: This script will run in the advertisement slot. It overrides the Key below.</p>
-                                        </div>
-
-                                        <div className="space-y-3 text-left">
-                                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Or use Adsterra Key (728x90 Banner)</label>
-                                           <div className="relative group">
-                                              <input 
-                                                 type="text" 
-                                                 value={settings.adsterraKey || ''}
-                                                 onChange={(e) => setSettings({ ...settings, adsterraKey: e.target.value })}
-                                                 className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 text-white font-mono text-base focus:border-emerald-500 outline-none transition-all placeholder:text-slate-700"
-                                                 placeholder="Enter Adsterra Key (e.g. bec4d3245746ed2be5b9f8aa8cd14ce2)"
-                                              />
-                                              <DollarSign className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
-                                           </div>
-                                        </div>
-                                     </div>
-                                  </div>
                                </div>
 
-                              <div className="space-y-3">
-                                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Store Logo</label>
+                               <div className="space-y-6 mt-12 bg-emerald-500/5 border border-emerald-500/10 rounded-3xl p-8">
+                                  <div className="flex items-center gap-3 mb-2">
+                                     <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                                        <DollarSign className="text-emerald-500" size={20} />
+                                     </div>
+                                     <div className="text-left">
+                                        <h4 className="text-lg font-black text-white uppercase tracking-tight">Advertisement Configuration</h4>
+                                        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Manage your Adsterra scripts</p>
+                                     </div>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        {/* Ad Slot 1 */}
+                                        <div className="space-y-6 p-6 rounded-2xl bg-slate-900/40 border border-white/5 overflow-hidden relative">
+                                           <div className="absolute top-0 left-0 w-1 h-full bg-blue-500/40"></div>
+                                           <div className="flex items-center justify-between mb-2">
+                                              <h5 className="text-xs font-black text-blue-400 uppercase tracking-widest">AD SLOT 1 (LEFT/TOP)</h5>
+                                              <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase">Primary</span>
+                                           </div>
+
+                                           <div className="space-y-3 text-left">
+                                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">PASTE AD SCRIPT CODE 1</label>
+                                              <div className="relative">
+                                                 <textarea 
+                                                    value={settings.adsterraCode || ''}
+                                                    onChange={(e) => setSettings({ ...settings, adsterraCode: e.target.value })}
+                                                    className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-6 text-white font-mono text-[10px] focus:border-blue-500 outline-none transition-all min-h-[140px] placeholder:text-slate-800"
+                                                    placeholder="Paste full script for Slot 1..."
+                                                 />
+                                              </div>
+                                           </div>
+
+                                           <div className="space-y-3 text-left">
+                                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Or Adsterra Key 1</label>
+                                              <div className="relative group">
+                                                 <input 
+                                                    type="text" 
+                                                    value={settings.adsterraKey || ''}
+                                                    onChange={(e) => setSettings({ ...settings, adsterraKey: e.target.value })}
+                                                    className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 text-white font-mono text-xs focus:border-blue-500 outline-none transition-all placeholder:text-slate-700"
+                                                    placeholder="Enter Key 1"
+                                                 />
+                                              </div>
+                                           </div>
+                                        </div>
+
+                                        {/* Ad Slot 2 */}
+                                        <div className="space-y-6 p-6 rounded-2xl bg-slate-900/40 border border-white/5 overflow-hidden relative">
+                                           <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/40"></div>
+                                           <div className="flex items-center justify-between mb-2">
+                                              <h5 className="text-xs font-black text-emerald-400 uppercase tracking-widest">AD SLOT 2 (RIGHT/BOTTOM)</h5>
+                                              <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[8px] font-black uppercase">Secondary</span>
+                                           </div>
+
+                                           <div className="space-y-3 text-left">
+                                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">PASTE AD SCRIPT CODE 2</label>
+                                              <div className="relative">
+                                                 <textarea 
+                                                    value={settings.adsterraCode2 || ''}
+                                                    onChange={(e) => setSettings({ ...settings, adsterraCode2: e.target.value })}
+                                                    className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-6 text-white font-mono text-[10px] focus:border-emerald-500 outline-none transition-all min-h-[140px] placeholder:text-slate-800"
+                                                    placeholder="Paste full script for Slot 2..."
+                                                 />
+                                              </div>
+                                           </div>
+
+                                           <div className="space-y-3 text-left">
+                                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Or Adsterra Key 2</label>
+                                              <div className="relative group">
+                                                 <input 
+                                                    type="text" 
+                                                    value={settings.adsterraKey2 || ''}
+                                                    onChange={(e) => setSettings({ ...settings, adsterraKey2: e.target.value })}
+                                                    className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 text-white font-mono text-xs focus:border-emerald-500 outline-none transition-all placeholder:text-slate-700"
+                                                    placeholder="Enter Key 2"
+                                                  />
+                                               </div>
+                                            </div>
+                                         </div>
+                                      </div>
+                                   </div>
+
+                               <div className="space-y-3">
+                                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Store Logo</label>
                                  <div className="flex flex-col md:flex-row gap-6 items-center">
                                     <div className="w-32 h-32 rounded-2xl bg-white p-4 flex items-center justify-center shrink-0 border border-white/10">
                                        {settings.logoURL ? (
