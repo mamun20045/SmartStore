@@ -67,7 +67,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { getMarketingStrategy } from "./services/gemini";
 import { Product, Settings } from "./types";
 import { db, auth } from "./lib/firebase";
-import { doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, orderBy, limit, deleteDoc, writeBatch, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, orderBy, limit, deleteDoc, writeBatch, onSnapshot, increment } from "firebase/firestore";
 import { signOut, onAuthStateChanged, User, signInWithEmailAndPassword, createUserWithEmailAndPassword, updatePassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 enum OperationType {
@@ -205,14 +205,15 @@ export default function App() {
   // Real-time Visitor Tracking
   useEffect(() => {
     const trackVisitor = async () => {
-      // Avoid tracking if already tracked in this session - Use v2 to force retry for users who were blocked before permission fix
-      const sessionTracked = sessionStorage.getItem('tracked_visit_v2');
+      // Use v4 to force retry for users who were blocked or had failures before
+      const sessionTracked = sessionStorage.getItem('tracked_visit_v4');
       if (sessionTracked) return;
 
       const endpoints = [
-        'https://ipapi.co/json/',
+        'https://ipwhois.app/json/',
         'https://ip-api.com/json',
-        'https://freeipapi.com/api/json'
+        'https://freeipapi.com/api/json',
+        'https://ipapi.co/json/'
       ];
 
       let countryData = null;
@@ -223,51 +224,43 @@ export default function App() {
           if (!res.ok) continue;
           const data = await res.json();
           
-          // Normalized mapping for different APIs
-          const code = data.country_code || data.countryCode || data.countryCode;
-          const name = data.country_name || data.country || data.countryName;
+          const code = (data.country_code || data.countryCode || data.country_code2 || '').toUpperCase();
+          const name = data.country_name || data.country || data.countryName || 'Unknown';
           
-          if (code) {
+          if (code && code.length === 2) {
             countryData = { code, name };
             break;
           }
         } catch (e) {
-          console.warn(`Tracking endpoint ${url} failed, trying next...`);
+          // Silent fail to next endpoint
         }
       }
       
       if (countryData && countryData.code) {
         try {
           const countryRef = doc(db, "analytics_geo", countryData.code);
-          const countryDoc = await getDoc(countryRef);
+          const flags: Record<string, string> = { 
+            'US': '🇺🇸', 'BD': '🇧🇩', 'GB': '🇬🇧', 'UK': '🇬🇧', 'IN': '🇮🇳', 'DE': '🇩🇪', 
+            'FR': '🇫🇷', 'CA': '🇨🇦', 'AU': '🇦🇺', 'CN': '🇨🇳', 'JP': '🇯🇵', 
+            'SA': '🇸🇦', 'AE': '🇦🇪', 'PK': '🇵🇰', 'MY': '🇲🇾', 'SG': '🇸🇬',
+            'IT': '🇮🇹', 'ES': '🇪🇸', 'BR': '🇧🇷', 'RU': '🇷🇺', 'MX': '🇲🇽'
+          };
           
-          if (countryDoc.exists()) {
-            await updateDoc(countryRef, {
-              count: (countryDoc.data().count || 0) + 1,
-              lastUpdated: new Date().toISOString()
-            });
-          } else {
-            const flags: Record<string, string> = { 
-              'US': '🇺🇸', 'BD': '🇧🇩', 'GB': '🇬🇧', 'IN': '🇮🇳', 'DE': '🇩🇪', 
-              'FR': '🇫🇷', 'CA': '🇨🇦', 'AU': '🇦🇺', 'UK': '🇬🇧', 'CN': '🇨🇳',
-              'JP': '🇯🇵', 'SA': '🇸🇦', 'AE': '🇦🇪', 'PK': '🇵🇰'
-            };
-            await setDoc(countryRef, {
-              countryCode: countryData.code,
-              countryName: countryData.name || 'Unknown',
-              count: 1,
-              flag: flags[countryData.code] || '🌍',
-              lastUpdated: new Date().toISOString()
-            });
-          }
-          sessionStorage.setItem('tracked_visit_v2', 'true');
+          await setDoc(countryRef, {
+            count: increment(1),
+            countryCode: countryData.code,
+            countryName: countryData.name,
+            flag: flags[countryData.code] || '🌍',
+            lastUpdated: new Date().toISOString()
+          }, { merge: true });
+
+          sessionStorage.setItem('tracked_visit_v4', 'true');
         } catch (e) {
-          console.error("Firestore visitor update failed:", e);
+          console.error("Firestore visitor track failed:", e);
         }
       }
     };
     
-    // Add small delay to ensure page load is smooth
     const timer = setTimeout(trackVisitor, 2000);
     return () => clearTimeout(timer);
   }, []);
@@ -1531,9 +1524,31 @@ export default function App() {
                                <h3 className="text-xl font-black text-white uppercase tracking-tight">Geo-Distribution</h3>
                                <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-widest">Global Audience reach</p>
                             </div>
-                            <div className="flex items-center gap-3 px-4 py-2 bg-blue-500/10 rounded-2xl border border-blue-500/20">
-                               <Globe size={18} className="text-blue-400 animate-pulse" />
-                               <span className="text-xs font-black text-white">LIVE TRAFFIC</span>
+                            <div className="flex items-center gap-3">
+                               <button 
+                                 onClick={async () => {
+                                   try {
+                                     const countryRef = doc(db, "analytics_geo", "TEST");
+                                     await setDoc(countryRef, {
+                                       count: increment(1),
+                                       countryCode: "TEST",
+                                       countryName: "Test Environment",
+                                       flag: "🧪",
+                                       lastUpdated: new Date().toISOString()
+                                     }, { merge: true });
+                                     alert("Test track success! If you still see 0 visitors, check your internet or Firebase connection.");
+                                   } catch (e) {
+                                     alert("Test track failed: " + (e instanceof Error ? e.message : String(e)));
+                                   }
+                                 }}
+                                 className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black text-blue-400 uppercase tracking-widest transition-all"
+                               >
+                                 Test Track
+                               </button>
+                               <div className="flex items-center gap-3 px-4 py-2 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                                  <Globe size={18} className="text-blue-400 animate-pulse" />
+                                  <span className="text-xs font-black text-white">LIVE TRAFFIC</span>
+                               </div>
                             </div>
                          </div>
                          
