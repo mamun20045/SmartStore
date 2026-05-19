@@ -27,7 +27,8 @@ import {
   Plus,
   RefreshCw,
   Trash2,
-  Eye,
+  Eye, 
+  Globe,
   CheckCircle2,
   ChevronDown,
   ArrowUpRight,
@@ -61,28 +62,12 @@ import {
   Cell 
 } from "recharts";
 
-const DEMO_TRAFFIC_DATA = [
-  { name: 'Nov 17', clicks: 400, sessions: 240 },
-  { name: 'Jul 23', clicks: 800, sessions: 400 },
-  { name: 'Oct 21', clicks: 1200, sessions: 600 },
-  { name: 'Mar 18', clicks: 900, sessions: 500 },
-  { name: 'Apr 25', clicks: 1000, sessions: 450 },
-  { name: 'May 23', clicks: 1500, sessions: 800 },
-];
-
-const DEMO_REVENUE_DATA = [
-  { name: 'Nov 13', value: 30000 },
-  { name: 'Jan 7', value: 45000 },
-  { name: 'Mar 17', value: 35000 },
-  { name: 'May 20', value: 70000 },
-  { name: 'Jul 15', value: 55000 },
-  { name: 'Sep 10', value: 85000 },
-];
+const DEMO_TRAFFIC_DATA: any[] = [];
 import { motion, AnimatePresence } from "motion/react";
 import { getMarketingStrategy } from "./services/gemini";
 import { Product, Settings } from "./types";
 import { db, auth } from "./lib/firebase";
-import { doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, orderBy, limit, deleteDoc, writeBatch } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, orderBy, limit, deleteDoc, writeBatch, onSnapshot } from "firebase/firestore";
 import { signOut, onAuthStateChanged, User, signInWithEmailAndPassword, createUserWithEmailAndPassword, updatePassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 enum OperationType {
@@ -210,10 +195,115 @@ export default function App() {
   const [view, setView] = useState<'home' | 'product' | 'admin'>('home');
   const [adminSubView, setAdminSubView] = useState<'overview' | 'products' | 'settings' | 'profile'>('overview');
   const [topProducts, setTopProducts] = useState<any[]>([]);
+  const [visitorStats, setVisitorStats] = useState<any[]>([]);
+  const [totalVisitorCount, setTotalVisitorCount] = useState(0);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+
+  // Real-time Visitor Tracking
+  useEffect(() => {
+    const trackVisitor = async () => {
+      // Avoid tracking if already tracked in this session
+      const sessionTracked = sessionStorage.getItem('tracked_visit');
+      if (sessionTracked) return;
+
+      const endpoints = [
+        'https://ipapi.co/json/',
+        'https://ip-api.com/json'
+      ];
+
+      let countryData = null;
+
+      for (const url of endpoints) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (data.country_code || data.countryCode) {
+            countryData = {
+              code: data.country_code || data.countryCode,
+              name: data.country_name || data.country
+            };
+            break;
+          }
+        } catch (e) {
+          // Continue to next endpoint if one fails
+        }
+      }
+      
+      if (countryData && countryData.code) {
+        try {
+          const countryRef = doc(db, "analytics_geo", countryData.code);
+          const countryDoc = await getDoc(countryRef);
+          
+          if (countryDoc.exists()) {
+            await updateDoc(countryRef, {
+              count: (countryDoc.data().count || 0) + 1,
+              lastUpdated: new Date().toISOString()
+            });
+          } else {
+            const flags: Record<string, string> = { 'US': '🇺🇸', 'BD': '🇧🇩', 'GB': '🇬🇧', 'IN': '🇮🇳', 'DE': '🇩🇪', 'FR': '🇫🇷', 'CA': '🇨🇦', 'AU': '🇦🇺', 'UK': '🇬🇧' };
+            await setDoc(countryRef, {
+              countryCode: countryData.code,
+              countryName: countryData.name,
+              count: 1,
+              flag: flags[countryData.code] || '🌍',
+              lastUpdated: new Date().toISOString()
+            });
+          }
+          sessionStorage.setItem('tracked_visit', 'true');
+        } catch (e) {
+          console.error("Firestore visitor update failed:", e);
+        }
+      }
+    };
+    trackVisitor();
+  }, []);
+
+  // Subscribe to Real-time Analytics
+  useEffect(() => {
+    if (!isAdmin(user)) return;
+
+    // Subscribe to Visitor Stats
+    const unsubGeo = onSnapshot(collection(db, "analytics_geo"), (snapshot) => {
+      const stats = snapshot.docs.map(doc => doc.data());
+      stats.sort((a, b) => b.count - a.count);
+      setVisitorStats(stats);
+      setTotalVisitorCount(stats.reduce((acc, curr) => acc + (curr.count || 0), 0));
+    });
+
+    // Subscribe to Clicks & Calculate Top Performers
+    const unsubClicks = onSnapshot(collection(db, "clicks"), (snapshot) => {
+      const clickDocs = snapshot.docs.map(doc => doc.data());
+      
+      const clickCounts: Record<string, number> = {};
+      clickDocs.forEach(c => {
+        if (c.id) clickCounts[c.id] = (clickCounts[c.id] || 0) + 1;
+      });
+      
+      const sortedTop = Object.entries(clickCounts)
+        .map(([id, count]) => {
+          const product = allProducts.find(p => p.id === id);
+          return { id, count, name: product?.name || 'Unknown Product' };
+        })
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      setTopProducts(sortedTop);
+      setStats({
+        totalClicks: snapshot.size,
+        recentClicks: snapshot.docs.slice(-5).map(doc => doc.data()).reverse()
+      });
+    });
+
+    return () => {
+      unsubGeo();
+      unsubClicks();
+    };
+  }, [user, allProducts]);
+
   const [adminEmailInput, setAdminEmailInput] = useState("");
   const [adminPasswordInput, setAdminPasswordInput] = useState("");
   const [newPasswordInput, setNewPasswordInput] = useState("");
@@ -531,41 +621,9 @@ export default function App() {
     }
   }, [view]);
 
-  // Fetch Stats when Admin opens
+   // Fetch Stats when Admin opens
   useEffect(() => {
-    if (view === 'admin' && isAdmin(user)) {
-      const fetchStats = async () => {
-        try {
-          const clicksSnap = await getDocs(query(collection(db, "clicks"), orderBy("timestamp", "desc"), limit(50)));
-          const allClicksSnap = await getDocs(collection(db, "clicks"));
-          
-          const clickDocs = allClicksSnap.docs.map(doc => doc.data());
-          
-          // Calculate top products
-          const clickCounts: Record<string, number> = {};
-          clickDocs.forEach(c => {
-            if (c.id) clickCounts[c.id] = (clickCounts[c.id] || 0) + 1;
-          });
-          
-          const sortedTop = Object.entries(clickCounts)
-            .map(([id, count]) => {
-              const product = allProducts.find(p => p.id === id);
-              return { id, count, name: product?.name || 'Unknown Product' };
-            })
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 5);
-
-          setTopProducts(sortedTop);
-          setStats({
-            totalClicks: allClicksSnap.size,
-            recentClicks: clicksSnap.docs.map(doc => doc.data()).slice(0, 5)
-          });
-        } catch (error) {
-          console.error("Error fetching stats:", error);
-        }
-      };
-      fetchStats();
-    }
+    // Redundant as we use onSnapshot now
   }, [view, user]);
 
   useEffect(() => {
@@ -1415,10 +1473,10 @@ export default function App() {
                      {/* Stats Grid */}
                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {[
-                           { label: 'Total Clicks', value: stats.totalClicks, trend: '+12.5%', icon: MousePointer2, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-                           { label: 'Inventory', value: allProducts.length, trend: 'Healthy', icon: Package, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-                           { label: 'Conversion', value: '4.2%', trend: '+0.8%', icon: TrendingUp, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-                           { label: 'Users', value: '1,240', trend: '+45', icon: UserIcon, color: 'text-orange-400', bg: 'bg-orange-400/10' },
+                           { label: 'Total Clicks', value: stats.totalClicks.toLocaleString(), trend: 'LIVE', icon: MousePointer2, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+                           { label: 'Inventory', value: allProducts.length, trend: 'Catalog', icon: Package, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+                           { label: 'Conversion', value: totalVisitorCount > 0 ? `${((stats.totalClicks / totalVisitorCount) * 100).toFixed(1)}%` : '0%', trend: 'Realtime', icon: TrendingUp, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+                           { label: 'Visitors', value: totalVisitorCount.toLocaleString(), trend: 'LIVE', icon: Globe, color: 'text-orange-400', bg: 'bg-orange-400/10' },
                         ].map((stat, i) => (
                            <div key={i} className="bg-[#0a1120] border border-white/5 p-6 rounded-3xl shadow-xl">
                               <div className="flex justify-between items-start mb-4">
@@ -1454,28 +1512,106 @@ export default function App() {
                                  </AreaChart>
                               </ResponsiveContainer>
                            </div>
-                        </div>
+                        </div>                      {/* Geo Distribution */}
+                      <div className="bg-[#0a1120] border border-white/5 p-8 rounded-[32px] shadow-2xl overflow-hidden relative">
+                         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full -mr-32 -mt-32 blur-3xl" />
+                         
+                         <div className="flex justify-between items-center mb-10 relative z-10">
+                            <div>
+                               <h3 className="text-xl font-black text-white uppercase tracking-tight">Geo-Distribution</h3>
+                               <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-widest">Global Audience reach</p>
+                            </div>
+                            <div className="flex items-center gap-3 px-4 py-2 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                               <Globe size={18} className="text-blue-400 animate-pulse" />
+                               <span className="text-xs font-black text-white">LIVE TRAFFIC</span>
+                            </div>
+                         </div>
+                         
+                         <div className="space-y-6 relative z-10">
+                            {visitorStats.length > 0 ? visitorStats.map((item, idx) => (
+                               <div key={idx} className="group">
+                                  <div className="flex items-center gap-4 mb-2">
+                                     <div className="w-10 text-center text-xl shrink-0">{item.flag}</div>
+                                     <div className="flex-1">
+                                        <div className="flex justify-between items-center mb-2">
+                                           <div className="flex items-baseline gap-2">
+                                              <span className="text-xs font-black text-white uppercase tracking-widest">{item.countryName}</span>
+                                              <span className="text-[10px] font-black text-slate-500 uppercase">{item.countryCode}</span>
+                                           </div>
+                                           <div className="flex items-center gap-3">
+                                              <span className="text-sm font-black text-blue-400">{item.count.toLocaleString()}</span>
+                                              <span className="text-[10px] font-black text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-md">LIVE</span>
+                                           </div>
+                                        </div>
+                                        <div className="relative h-2 w-full bg-white/[0.03] rounded-full overflow-hidden border border-white/10">
+                                           <motion.div 
+                                              initial={{ width: 0 }}
+                                              animate={{ width: `${(item.count / (visitorStats[0]?.count || 1)) * 100}%` }}
+                                              transition={{ duration: 1, delay: idx * 0.1 }}
+                                              className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 to-indigo-400 rounded-full shadow-[0_0_15px_rgba(37,99,235,0.3)]"
+                                           />
+                                        </div>
+                                     </div>
+                                  </div>
+                               </div>
+                            )) : (
+                               <div className="py-20 text-center">
+                                  <p className="text-xs text-slate-600 uppercase tracking-widest font-black">No visitors tracked yet</p>
+                               </div>
+                            )}
+                         </div>
+                      </div>
+                   </div>
 
-                        {/* Top Products */}
-                        <div className="bg-[#0a1120] border border-white/5 p-8 rounded-[32px] shadow-2xl">
-                           <h3 className="text-lg font-black text-white uppercase tracking-tight mb-8">Top Performers</h3>
-                           <div className="space-y-4">
-                              {topProducts.length > 0 ? topProducts.map((p, i) => (
-                                 <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 group hover:bg-white/10 transition-all">
-                                    <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black shrink-0">
-                                       {i + 1}
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                         {/* Top Products */}
+                        <div className="bg-[#0a1120] border border-white/5 p-8 rounded-[32px] shadow-2xl relative overflow-hidden">
+                           <div className="absolute bottom-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full -mb-32 -mr-32 blur-3xl" />
+                           
+                           <h3 className="text-xl font-black text-white uppercase tracking-tight mb-8 relative z-10">Top Performers</h3>
+                           <div className="space-y-4 relative z-10">
+                              {topProducts.length > 0 ? topProducts.map((p, i) => {
+                                 const maxCount = topProducts[0].count;
+                                 const percentage = (p.count / maxCount) * 100;
+                                 return (
+                                    <div key={i} className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-blue-500/30 transition-all group relative overflow-hidden">
+                                       <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                       <div className="flex items-center gap-5 relative z-10">
+                                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg ${
+                                             i === 0 ? 'bg-yellow-500 text-black shadow-[0_0_20px_rgba(234,179,8,0.3)]' : 
+                                             i === 1 ? 'bg-slate-300 text-black' : 
+                                             i === 2 ? 'bg-orange-400 text-black' : 
+                                             'bg-blue-600 text-white'
+                                          }`}>
+                                             {i + 1}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                             <div className="flex justify-between items-start mb-2">
+                                                <p className="text-sm font-black text-white uppercase tracking-tight truncate group-hover:text-blue-400 transition-colors">
+                                                   {p.name}
+                                                </p>
+                                                <span className="text-xs font-black text-blue-400 ml-4 shrink-0">
+                                                   {p.count} <span className="text-[10px] text-slate-500 ml-0.5">PV</span>
+                                                </span>
+                                             </div>
+                                             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                                <motion.div 
+                                                   initial={{ width: 0 }}
+                                                   animate={{ width: `${percentage}%` }}
+                                                   transition={{ duration: 1, delay: i * 0.1 }}
+                                                   className="h-full bg-blue-500 rounded-full"
+                                                />
+                                             </div>
+                                          </div>
+                                       </div>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                       <p className="text-sm font-bold text-white truncate">{p.name}</p>
-                                       <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">{p.count} Clickthroughs</p>
+                                 );
+                              }) : (
+                                 <div className="py-20 text-center">
+                                    <div className="flex justify-center mb-4">
+                                       <Package size={40} className="text-slate-800" />
                                     </div>
-                                    <div className="text-right">
-                                       <ChevronRight size={16} className="text-slate-600 group-hover:text-blue-400 transition-colors" />
-                                    </div>
-                                 </div>
-                              )) : (
-                                 <div className="py-12 text-center">
-                                    <p className="text-xs text-slate-500 uppercase tracking-widest font-black">No click data available yet</p>
+                                    <p className="text-xs text-slate-600 uppercase tracking-widest font-black">Waiting for Data Stream</p>
                                  </div>
                               )}
                            </div>
@@ -2467,6 +2603,8 @@ export default function App() {
                             <p className="text-xs text-slate-500 leading-relaxed">Get valid manufacturer warranty directly when purchasing via Amazon.</p>
                          </div>
                       </div>
+                         </div>
+                      </div>
                    </div>
                 </div>
 
@@ -2527,8 +2665,6 @@ export default function App() {
                       ))}
                    </div>
                 </div>
-             </div>
-          </div>
 
           <div className="max-w-[1500px] mx-auto px-4 md:px-8 mb-20">
              <div className="p-6 bg-slate-100 rounded-2xl border border-slate-200">

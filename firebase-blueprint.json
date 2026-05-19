@@ -37,6 +37,18 @@
         "userId": { "type": "string" }
       }
     }
+    "VisitorStat": {
+      "title": "Visitor Stat",
+      "description": "Aggregated visitor data per country.",
+      "type": "object",
+      "properties": {
+        "count": { "type": "number" },
+        "countryName": { "type": "string" },
+        "countryCode": { "type": "string" },
+        "flag": { "type": "string" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      }
+    }
   },
   "firestore": {
     "/products/{productId}": {
@@ -50,6 +62,10 @@
     "/clicks/{clickId}": {
       "schema": "ClickEvent",
       "description": "Analytics tracking for affiliate links."
+    },
+    "/analytics_geo/{countryCode}": {
+      "schema": "VisitorStat",
+      "description": "Visitor statistics per country."
     }
   }
 }
