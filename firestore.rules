@@ -41,5 +41,11 @@ service cloud.firestore {
     match /clicks/{clickId} {
       allow read, write: if true;
     }
+
+    // Analytics: Visitors can update stats, admins can read
+    match /analytics_geo/{countryCode} {
+      allow read: if true;
+      allow create, update: if true;
+    }
   }
 }

@@ -205,13 +205,14 @@ export default function App() {
   // Real-time Visitor Tracking
   useEffect(() => {
     const trackVisitor = async () => {
-      // Avoid tracking if already tracked in this session
-      const sessionTracked = sessionStorage.getItem('tracked_visit');
+      // Avoid tracking if already tracked in this session - Use v2 to force retry for users who were blocked before permission fix
+      const sessionTracked = sessionStorage.getItem('tracked_visit_v2');
       if (sessionTracked) return;
 
       const endpoints = [
         'https://ipapi.co/json/',
-        'https://ip-api.com/json'
+        'https://ip-api.com/json',
+        'https://freeipapi.com/api/json'
       ];
 
       let countryData = null;
@@ -221,15 +222,17 @@ export default function App() {
           const res = await fetch(url);
           if (!res.ok) continue;
           const data = await res.json();
-          if (data.country_code || data.countryCode) {
-            countryData = {
-              code: data.country_code || data.countryCode,
-              name: data.country_name || data.country
-            };
+          
+          // Normalized mapping for different APIs
+          const code = data.country_code || data.countryCode || data.countryCode;
+          const name = data.country_name || data.country || data.countryName;
+          
+          if (code) {
+            countryData = { code, name };
             break;
           }
         } catch (e) {
-          // Continue to next endpoint if one fails
+          console.warn(`Tracking endpoint ${url} failed, trying next...`);
         }
       }
       
@@ -244,22 +247,29 @@ export default function App() {
               lastUpdated: new Date().toISOString()
             });
           } else {
-            const flags: Record<string, string> = { 'US': '🇺🇸', 'BD': '🇧🇩', 'GB': '🇬🇧', 'IN': '🇮🇳', 'DE': '🇩🇪', 'FR': '🇫🇷', 'CA': '🇨🇦', 'AU': '🇦🇺', 'UK': '🇬🇧' };
+            const flags: Record<string, string> = { 
+              'US': '🇺🇸', 'BD': '🇧🇩', 'GB': '🇬🇧', 'IN': '🇮🇳', 'DE': '🇩🇪', 
+              'FR': '🇫🇷', 'CA': '🇨🇦', 'AU': '🇦🇺', 'UK': '🇬🇧', 'CN': '🇨🇳',
+              'JP': '🇯🇵', 'SA': '🇸🇦', 'AE': '🇦🇪', 'PK': '🇵🇰'
+            };
             await setDoc(countryRef, {
               countryCode: countryData.code,
-              countryName: countryData.name,
+              countryName: countryData.name || 'Unknown',
               count: 1,
               flag: flags[countryData.code] || '🌍',
               lastUpdated: new Date().toISOString()
             });
           }
-          sessionStorage.setItem('tracked_visit', 'true');
+          sessionStorage.setItem('tracked_visit_v2', 'true');
         } catch (e) {
           console.error("Firestore visitor update failed:", e);
         }
       }
     };
-    trackVisitor();
+    
+    // Add small delay to ensure page load is smooth
+    const timer = setTimeout(trackVisitor, 2000);
+    return () => clearTimeout(timer);
   }, []);
 
   // Subscribe to Real-time Analytics
