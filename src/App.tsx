@@ -205,15 +205,14 @@ export default function App() {
   // Real-time Visitor Tracking
   useEffect(() => {
     const trackVisitor = async () => {
-      // Use v4 to force retry for users who were blocked or had failures before
-      const sessionTracked = sessionStorage.getItem('tracked_visit_v4');
+      // Use v5 to bypass any previous session blocks
+      const sessionTracked = localStorage.getItem('tracked_visit_v5');
       if (sessionTracked) return;
 
       const endpoints = [
         'https://ipwhois.app/json/',
         'https://ip-api.com/json',
-        'https://freeipapi.com/api/json',
-        'https://ipapi.co/json/'
+        'https://freeipapi.com/api/json'
       ];
 
       let countryData = null;
@@ -254,7 +253,10 @@ export default function App() {
             lastUpdated: new Date().toISOString()
           }, { merge: true });
 
-          sessionStorage.setItem('tracked_visit_v4', 'true');
+          sessionStorage.removeItem('tracked_visit_v2'); // Cleanup old keys
+          sessionStorage.removeItem('tracked_visit_v3');
+          sessionStorage.removeItem('tracked_visit_v4');
+          localStorage.setItem('tracked_visit_v5', 'true');
         } catch (e) {
           console.error("Firestore visitor track failed:", e);
         }
@@ -271,7 +273,9 @@ export default function App() {
 
     // Subscribe to Visitor Stats
     const unsubGeo = onSnapshot(collection(db, "analytics_geo"), (snapshot) => {
-      const stats = snapshot.docs.map(doc => doc.data());
+      const stats = snapshot.docs
+        .map(doc => doc.data())
+        .filter(item => item.countryCode !== 'TEST'); // Hide test data from UI
       stats.sort((a, b) => b.count - a.count);
       setVisitorStats(stats);
       setTotalVisitorCount(stats.reduce((acc, curr) => acc + (curr.count || 0), 0));
@@ -1524,31 +1528,9 @@ export default function App() {
                                <h3 className="text-xl font-black text-white uppercase tracking-tight">Geo-Distribution</h3>
                                <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-widest">Global Audience reach</p>
                             </div>
-                            <div className="flex items-center gap-3">
-                               <button 
-                                 onClick={async () => {
-                                   try {
-                                     const countryRef = doc(db, "analytics_geo", "TEST");
-                                     await setDoc(countryRef, {
-                                       count: increment(1),
-                                       countryCode: "TEST",
-                                       countryName: "Test Environment",
-                                       flag: "🧪",
-                                       lastUpdated: new Date().toISOString()
-                                     }, { merge: true });
-                                     alert("Test track success! If you still see 0 visitors, check your internet or Firebase connection.");
-                                   } catch (e) {
-                                     alert("Test track failed: " + (e instanceof Error ? e.message : String(e)));
-                                   }
-                                 }}
-                                 className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black text-blue-400 uppercase tracking-widest transition-all"
-                               >
-                                 Test Track
-                               </button>
-                               <div className="flex items-center gap-3 px-4 py-2 bg-blue-500/10 rounded-2xl border border-blue-500/20">
-                                  <Globe size={18} className="text-blue-400 animate-pulse" />
-                                  <span className="text-xs font-black text-white">LIVE TRAFFIC</span>
-                               </div>
+                            <div className="flex items-center gap-3 px-4 py-2 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                               <Globe size={18} className="text-blue-400 animate-pulse" />
+                               <span className="text-xs font-black text-white">LIVE TRAFFIC</span>
                             </div>
                          </div>
                          
