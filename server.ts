@@ -1,6 +1,85 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { GoogleGenAI } from "@google/genai";
+
+// Load Firebase configuration for dynamic server-side meta injection
+const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+const firebaseConfig = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, "utf8")) : null;
+
+async function fetchProductMetadata(productId: string) {
+  if (!firebaseConfig) return null;
+  const projectId = firebaseConfig.projectId;
+  const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
+  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/products/${productId}`;
+  
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn(`Firestore REST fetch failed for ${productId}: status ${res.status}`);
+      return null;
+    }
+    const data = await res.json();
+    if (!data.fields) return null;
+
+    const fields = data.fields;
+    const name = fields.name?.stringValue || "USA Smart Gadget product";
+    
+    let description = fields.description?.stringValue || "";
+    if (description && description.length > 200) {
+      description = description.substring(0, 197) + "...";
+    } else if (!description) {
+      description = `Check out the latest price for ${name} at USA Smart Gadget.`;
+    }
+    
+    let image_url = fields.image_url?.stringValue || "";
+    if (!image_url && fields.images?.arrayValue?.values && fields.images.arrayValue.values.length > 0) {
+      image_url = fields.images.arrayValue.values[0].stringValue || "";
+    }
+    
+    let price = fields.price?.stringValue || "";
+    if (!price && fields.price?.doubleValue) {
+      price = fields.price.doubleValue.toString();
+    } else if (!price && fields.price?.integerValue) {
+      price = fields.price.integerValue.toString();
+    }
+    
+    return { name, description, image_url, price };
+  } catch (err) {
+    console.error("Error fetching product metadata:", err);
+    return null;
+  }
+}
+
+function injectMetaTags(html: string, product: any, reqUrl: string): string {
+  if (!product) return html;
+  
+  const title = `${product.name} | USA Smart Gadget`;
+  const desc = product.description;
+  const image = product.image_url || "";
+  
+  const metaTags = `
+    <!-- Dynamic Open Graph Meta Tags for Facebook/Social Shares -->
+    <title>${title}</title>
+    <meta name="description" content="${desc}" />
+    <meta property="og:title" content="${title}" />
+    <meta property="og:description" content="${desc}" />
+    <meta property="og:image" content="${image}" />
+    <meta property="og:url" content="${reqUrl}" />
+    <meta property="og:type" content="product" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${title}" />
+    <meta name="twitter:description" content="${desc}" />
+    <meta name="twitter:image" content="${image}" />
+  `;
+  
+  // Replace standard <title> tag
+  let transformed = html.replace(/<title>.*?<\/title>/i, metaTags);
+  if (transformed === html) {
+    transformed = html.replace("<head>", `<head>${metaTags}`);
+  }
+  return transformed;
+}
 
 async function startServer() {
   const app = express();
@@ -58,6 +137,38 @@ async function startServer() {
       console.error("Gemini Error:", error);
       res.status(500).json({ error: "Failed to generate content." });
     }
+  });
+
+  // Dynamic HTML / Meta Injector for Social shares and crawlers
+  app.use(async (req, res, next) => {
+    const productId = req.query.product as string;
+    
+    // We only intercept if there's a product query parameter
+    if (productId) {
+      try {
+        const product = await fetchProductMetadata(productId);
+        if (product) {
+          const isProd = process.env.NODE_ENV === "production";
+          const indexPath = isProd 
+            ? path.join(process.cwd(), "dist", "index.html")
+            : path.join(process.cwd(), "index.html");
+          
+          if (fs.existsSync(indexPath)) {
+            let html = fs.readFileSync(indexPath, "utf8");
+            
+            const protocol = req.secure || req.headers["x-forwarded-proto"] === "https" ? "https" : "http";
+            const fullUrl = `${protocol}://${req.get("host")}${req.originalUrl || req.url}`;
+            const transformedHtml = injectMetaTags(html, product, fullUrl);
+            
+            res.setHeader("Content-Type", "text/html");
+            return res.send(transformedHtml);
+          }
+        }
+      } catch (err) {
+        console.error("HTML injection failed, fallback to default serving:", err);
+      }
+    }
+    next();
   });
 
   // Vite integration
