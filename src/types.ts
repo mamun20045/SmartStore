@@ -32,6 +32,9 @@ export interface Settings {
   adsterraKey2?: string;
   adsterraCode2?: string;
   websiteURL?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  heroBgURL?: string;
 }
 
 export interface ClickEvent {

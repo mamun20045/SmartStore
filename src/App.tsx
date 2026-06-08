@@ -132,7 +132,10 @@ const DEFAULT_SETTINGS: Settings = {
   adsterraCode: "",
   adsterraKey2: "",
   adsterraCode2: "",
-  websiteURL: "https://smartstore.chinaonlinebdpurchase2.workers.dev/"
+  websiteURL: "https://smartstore.chinaonlinebdpurchase2.workers.dev/",
+  heroTitle: "ELEVATE YOUR SPACE WITH INTUITIVE INNOVATION",
+  heroSubtitle: "Curated collections of the finest top-rated Amazon smart gadgets designed for modern efficient living.",
+  heroBgURL: "https://images.unsplash.com/photo-1558002038-1055907df827?auto=format&fit=crop&w=1920&q=80"
 };
 
 const parsePrice = (priceStr: string | undefined) => {
@@ -1042,8 +1045,64 @@ export default function App() {
 
       {/* Main Content Area */}
       {view === 'home' ? (
-        <main className="relative z-10 pt-20 px-6 pb-24 max-w-7xl mx-auto">
-        {/* Categories Section */}
+        <div className="w-full relative z-10">
+          {/* New Full-Width Hero Section */}
+          <section className="relative w-full min-h-[55vh] md:min-h-[70vh] flex items-center justify-center overflow-hidden border-b border-white/5 bg-[#050b18]">
+             {/* Background Image / Overlay */}
+             <div className="absolute inset-0">
+                <img 
+                   src={settings.heroBgURL || "https://images.unsplash.com/photo-1558002038-1055907df827?auto=format&fit=crop&w=1920&q=80"} 
+                   alt="Modern Smart Lifestyle" 
+                   className="w-full h-full object-cover opacity-25 select-none pointer-events-none filter brightness-50"
+                   referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050b18] via-[#050b18]/70 to-[#050b18]/20" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#050b18] via-[#050b18]/40 to-transparent" />
+             </div>
+
+             {/* Hero Content */}
+             <div className="relative z-20 w-full max-w-7xl mx-auto px-6 text-center md:text-left pt-28 md:pt-40 pb-16 md:pb-24 select-none">
+                <motion.div 
+                   initial={{ opacity: 0, y: 30 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   transition={{ duration: 0.8 }}
+                   className="space-y-6"
+                >
+                   {/* Premium Badge */}
+                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full">
+                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                      <span className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em]">{settings.storeName || "USA SMART GADGET"} EXCLUSIVE</span>
+                   </div>
+                   
+                   <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white leading-none uppercase tracking-tight max-w-3xl drop-shadow-md">
+                      {settings.heroTitle || "ELEVATE YOUR SPACE WITH INTUITIVE INNOVATION"}
+                   </h1>
+                   
+                   <p className="text-xs sm:text-sm md:text-base text-slate-300 font-light max-w-2xl leading-relaxed">
+                      {settings.heroSubtitle || "Curated collections of the finest top-rated Amazon smart gadgets designed for modern efficient living."}
+                   </p>
+
+                   <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
+                      <button 
+                         onClick={() => navigateToHomeSection(categoriesSectionRef)}
+                         className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-black text-xs uppercase tracking-widest transition-all shadow-[0_4px_20px_rgba(37,99,235,0.4)] hover:shadow-[0_4px_25px_rgba(37,99,235,0.6)] cursor-pointer flex items-center justify-center gap-2"
+                      >
+                         BROWSE CATEGORIES <ChevronRight size={14} />
+                      </button>
+                      <button 
+                         onClick={() => navigateToHomeSection(dealsSectionRef)}
+                         className="w-full sm:w-auto px-8 py-3.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-full font-black text-xs uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2"
+                      >
+                         EXPLORE DEALS
+                      </button>
+                   </div>
+                </motion.div>
+             </div>
+          </section>
+
+          {/* Main Content Area */}
+          <main className="relative z-10 px-6 pb-24 max-w-7xl mx-auto mt-16">
+          {/* Categories Section */}
         <section ref={categoriesSectionRef} className="mb-8 scroll-mt-24">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-black uppercase tracking-tight text-white mb-4">BROWSE SMART CATEGORIES</h2>
@@ -1347,6 +1406,7 @@ export default function App() {
           </div>
         </section>
       </main>
+    </div>
       ) : view === 'admin' ? ( /* ADMIN OK */
         !isAdmin(user) ? (
           /* Admin Login Prompt */
@@ -2183,6 +2243,49 @@ export default function App() {
                                  <p className="text-[9px] text-slate-600 font-medium italic">
                                     * Recommended: Square or Landscape logo on a transparent or white background. Max 500kb.
                                  </p>
+                              </div>
+
+                              {/* Hero Banner Configurations */}
+                              <div className="border-t border-white/5 pt-8 space-y-6">
+                                 <h4 className="text-sm font-black text-white uppercase tracking-wider text-left">Custom Hero Banner Style</h4>
+                                 <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold text-left">Personalize your main landing page presentation banner.</p>
+
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-3">
+                                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block text-left">Hero TITLE TEXT</label>
+                                       <input 
+                                          type="text" 
+                                          value={settings.heroTitle || ""}
+                                          onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })}
+                                          className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-4 text-white text-xs font-bold focus:border-blue-500 outline-none transition-all text-left"
+                                          placeholder="ELEVATE YOUR SPACE WITH INTUITIVE INNOVATION"
+                                       />
+                                    </div>
+                                    <div className="space-y-3">
+                                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block text-left">Hero SUBTITLE TEXT</label>
+                                       <input 
+                                          type="text" 
+                                          value={settings.heroSubtitle || ""}
+                                          onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })}
+                                          className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-4 text-white text-xs focus:border-blue-500 outline-none transition-all text-left"
+                                          placeholder="Curated collections of the finest top-rated Amazon smart gadgets designed for modern efficient living."
+                                       />
+                                    </div>
+                                 </div>
+
+                                 <div className="space-y-3">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block text-left">Hero BACKGROUND IMAGE URL</label>
+                                    <input 
+                                       type="text" 
+                                       value={settings.heroBgURL || ""}
+                                       onChange={(e) => setSettings({ ...settings, heroBgURL: e.target.value })}
+                                       className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-4 text-white text-xs font-mono focus:border-blue-500 outline-none transition-all text-left"
+                                       placeholder="https://images.unsplash.com/photo-1558002038-1055907df827?auto=format&fit=crop&w=1920&q=80"
+                                    />
+                                    <p className="text-[9px] text-slate-600 font-medium italic text-left">
+                                       * Use any high quality Unsplash url or hosted web image link to modify the landing page hero background perfectly.
+                                    </p>
+                                 </div>
                               </div>
                               
                               <button 
