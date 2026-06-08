@@ -47,7 +47,9 @@ import {
   Facebook,
   Twitter,
   MessageCircle,
-  Link as LinkIcon
+  Link as LinkIcon,
+  QrCode,
+  Download
 } from "lucide-react";
 import { 
   ResponsiveContainer, 
@@ -454,10 +456,13 @@ export default function App() {
       const url = new URL(window.location.href);
       if (view === 'product' && selectedProduct) {
         url.searchParams.set('product', selectedProduct.id);
+        const slug = selectedProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        url.searchParams.set('amazon', slug);
         window.history.replaceState({ productId: selectedProduct.id }, '', url.toString());
       } else if (view === 'home') {
-        if (url.searchParams.has('product')) {
+        if (url.searchParams.has('product') || url.searchParams.has('amazon')) {
           url.searchParams.delete('product');
+          url.searchParams.delete('amazon');
           window.history.replaceState({}, '', url.toString());
         }
       }
@@ -887,12 +892,23 @@ export default function App() {
         // Deep linking support
         const urlParams = new URLSearchParams(window.location.search);
         const productId = urlParams.get('product');
+        const amazonSlug = urlParams.get('amazon');
+        
+        let foundProduct = null;
         if (productId) {
-          const found = loadedProducts.find(p => p.id === productId || p.asin === productId);
-          if (found) {
-            setSelectedProduct(found);
-            setView('product');
-          }
+          foundProduct = loadedProducts.find(p => p.id === productId || p.asin === productId);
+        }
+        
+        if (!foundProduct && amazonSlug) {
+          foundProduct = loadedProducts.find(p => {
+            const slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+            return slug === amazonSlug || p.id === amazonSlug;
+          });
+        }
+        
+        if (foundProduct) {
+          setSelectedProduct(foundProduct);
+          setView('product');
         }
       } catch (error) {
         console.error("Error loading products:", error);
@@ -901,6 +917,16 @@ export default function App() {
     };
     loadProducts();
   }, [settings.affiliateTag]);
+
+  const getProductShareURL = (product: Product | null) => {
+    if (!product) return window.location.href;
+    const baseDomain = settings.websiteURL?.trim();
+    const isPlaceholder = !baseDomain || baseDomain.includes("chinaonlinebdpurchase2.workers.dev");
+    const activeDomain = isPlaceholder ? window.location.origin : baseDomain;
+    const cleanedBase = activeDomain.endsWith('/') ? activeDomain : `${activeDomain}/`;
+    const slug = product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    return `${cleanedBase}?product=${encodeURIComponent(product.id)}&amazon=${encodeURIComponent(slug)}`;
+  };
 
   return (
     <div className="min-h-screen bg-[#050b18] font-sans selection:bg-blue-500/30">
@@ -934,10 +960,10 @@ export default function App() {
             </button>
             <div className="group relative">
               <button 
-                onClick={() => navigateToHomeSection(categoriesSectionRef)}
+                onClick={() => navigateToHomeSection(productsSectionRef)}
                 className="text-xs font-bold text-slate-400 hover:text-white transition-colors tracking-widest uppercase flex items-center gap-1"
               >
-                Shop <ChevronRight size={14} className="rotate-90" />
+                Products <ChevronRight size={14} className="rotate-90" />
               </button>
             </div>
             <button 
@@ -1016,7 +1042,7 @@ export default function App() {
                 </div>
                 {[
                   { label: "Home", action: () => { setView('home'); setSelectedProduct(null); setProducts(allProducts); setQueryInput(""); window.scrollTo({ top: 0, behavior: "smooth" }); } },
-                  { label: "Category", action: () => navigateToHomeSection(categoriesSectionRef) },
+                  { label: "Products", action: () => navigateToHomeSection(productsSectionRef) },
                   { label: "Deals", action: () => navigateToHomeSection(dealsSectionRef) },
                   { label: "New Tech", action: () => navigateToHomeSection(newTechSectionRef) },
                 ].map((item) => (
@@ -1084,10 +1110,10 @@ export default function App() {
 
                    <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
                       <button 
-                         onClick={() => navigateToHomeSection(categoriesSectionRef)}
+                         onClick={() => navigateToHomeSection(productsSectionRef)}
                          className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-black text-xs uppercase tracking-widest transition-all shadow-[0_4px_20px_rgba(37,99,235,0.4)] hover:shadow-[0_4px_25px_rgba(37,99,235,0.6)] cursor-pointer flex items-center justify-center gap-2"
                       >
-                         BROWSE CATEGORIES <ChevronRight size={14} />
+                         BROWSE PRODUCTS <ChevronRight size={14} />
                       </button>
                       <button 
                          onClick={() => navigateToHomeSection(dealsSectionRef)}
@@ -1102,33 +1128,6 @@ export default function App() {
 
           {/* Main Content Area */}
           <main className="relative z-10 px-6 pb-24 max-w-7xl mx-auto mt-16">
-          {/* Categories Section */}
-        <section ref={categoriesSectionRef} className="mb-8 scroll-mt-24">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-black uppercase tracking-tight text-white mb-4">BROWSE SMART CATEGORIES</h2>
-            <p className="text-slate-400 text-sm font-light">Find the Perfect Tech for Every Corner of Your Life.</p>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-6">
-            {CATEGORIES.map((cat, idx) => (
-              <motion.div
-                key={cat.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: idx * 0.05 }}
-                onClick={() => handleCategoryFilter(cat.name)}
-                className="glow-icon group cursor-pointer"
-              >
-                <div className={`transition-transform duration-500 group-hover:scale-110 ${cat.color}`}>
-                  <cat.icon size={40} />
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors">{cat.name}</span>
-                <button className="bg-blue-600/80 hover:bg-blue-600 text-white text-[8px] font-black py-1.5 px-4 rounded-full opacity-100 translate-y-0 shadow-lg transition-all flex items-center gap-1 group-hover:bg-blue-500">
-                  EXPLORE <ChevronRight size={10} />
-                </button>
-              </motion.div>
-            ))}
-          </div>
-        </section>
 
         {/* Adsterra Advertisement Banners - Dual Slot on Desktop */}
         <div className="w-full mt-8 mb-8 flex justify-center px-4">
@@ -2245,49 +2244,6 @@ export default function App() {
                                  </p>
                               </div>
 
-                              {/* Hero Banner Configurations */}
-                              <div className="border-t border-white/5 pt-8 space-y-6">
-                                 <h4 className="text-sm font-black text-white uppercase tracking-wider text-left">Custom Hero Banner Style</h4>
-                                 <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold text-left">Personalize your main landing page presentation banner.</p>
-
-                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-3">
-                                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block text-left">Hero TITLE TEXT</label>
-                                       <input 
-                                          type="text" 
-                                          value={settings.heroTitle || ""}
-                                          onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })}
-                                          className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-4 text-white text-xs font-bold focus:border-blue-500 outline-none transition-all text-left"
-                                          placeholder="ELEVATE YOUR SPACE WITH INTUITIVE INNOVATION"
-                                       />
-                                    </div>
-                                    <div className="space-y-3">
-                                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block text-left">Hero SUBTITLE TEXT</label>
-                                       <input 
-                                          type="text" 
-                                          value={settings.heroSubtitle || ""}
-                                          onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })}
-                                          className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-4 text-white text-xs focus:border-blue-500 outline-none transition-all text-left"
-                                          placeholder="Curated collections of the finest top-rated Amazon smart gadgets designed for modern efficient living."
-                                       />
-                                    </div>
-                                 </div>
-
-                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block text-left">Hero BACKGROUND IMAGE URL</label>
-                                    <input 
-                                       type="text" 
-                                       value={settings.heroBgURL || ""}
-                                       onChange={(e) => setSettings({ ...settings, heroBgURL: e.target.value })}
-                                       className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-4 text-white text-xs font-mono focus:border-blue-500 outline-none transition-all text-left"
-                                       placeholder="https://images.unsplash.com/photo-1558002038-1055907df827?auto=format&fit=crop&w=1920&q=80"
-                                    />
-                                    <p className="text-[9px] text-slate-600 font-medium italic text-left">
-                                       * Use any high quality Unsplash url or hosted web image link to modify the landing page hero background perfectly.
-                                    </p>
-                                 </div>
-                              </div>
-                              
                               <button 
                                  onClick={() => { saveSettings(settings); alert("Configuration updated successfully!"); }}
                                  className="w-full py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-blue-600/20 transition-all active:scale-95 flex items-center justify-center gap-2"
@@ -2575,51 +2531,88 @@ export default function App() {
 
                         {/* Share Product Section */}
                         <div className="pt-6 border-t border-slate-100 space-y-4">
-                           <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Share This Product</h4>
+                           <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-center font-sans">Share This Product</h4>
                            <div className="flex items-center justify-center gap-3">
-                              {[
-                                 { icon: Facebook, color: "hover:text-[#1877F2]", label: "Facebook", action: () => {
-                                    const baseDomain = settings.websiteURL?.trim() || "https://smartstore.chinaonlinebdpurchase2.workers.dev/";
-                                    const cleanedBase = baseDomain.endsWith('/') ? baseDomain : `${baseDomain}/`;
+                              {(() => {
+                                 const shareUrl = getProductShareURL(selectedProduct);
+                                 return [
+                                    { icon: Facebook, color: "hover:text-[#1877F2]", label: "Facebook", action: () => {
+                                       window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
+                                    } },
+                                    { icon: Twitter, color: "hover:text-[#1DA1F2]", label: "Twitter", action: () => {
+                                       const text = `Check out this ${selectedProduct?.name || "product"}`;
+                                       window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+                                    } },
+                                    { icon: MessageCircle, color: "hover:text-[#25D366]", label: "WhatsApp", action: () => {
+                                       const text = `Check out this ${selectedProduct?.name || "product"}: ${shareUrl}`;
+                                       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                                    } },
+                                    { icon: shareCopied ? CheckCircle2 : LinkIcon, color: shareCopied ? "text-emerald-500 border-emerald-100 bg-emerald-50/50 hover:text-emerald-600" : "hover:text-blue-600", label: shareCopied ? "Copied!" : "Copy Link", action: () => { 
+                                       navigator.clipboard.writeText(shareUrl); 
+                                       setShareCopied(true); 
+                                       setTimeout(() => setShareCopied(false), 2000); 
+                                    } }
+                                 ].map((btn, i) => (
+                                    <button 
+                                      key={i}
+                                      onClick={btn.action}
+                                      className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all hover:scale-110 active:scale-95 hover:shadow-lg ${btn.label === "Copied!" ? "bg-emerald-50 border-emerald-200 text-emerald-500 hover:bg-emerald-100/55" : "bg-slate-50 border-slate-100 text-slate-400 hover:bg-white"}`}
+                                      title={btn.label}
+                                    >
+                                       <btn.icon size={18} />
+                                    </button>
+                                 ));
+                              })()}
+                           </div>
+
+                           {/* Deep Link QR Code Section */}
+                           <div className="mt-5 pt-5 border-t border-slate-150 flex flex-col items-center font-sans">
+                              <div className="flex items-center gap-1.5 mb-3 bg-slate-50 border border-slate-100 px-3 py-1 rounded-full">
+                                 <QrCode size={12} className="text-slate-500" />
+                                 <span className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500">Scan & Share</span>
+                              </div>
+                              
+                              <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm hover:border-slate-200 transition-all flex flex-col items-center justify-center relative group w-full max-w-[170px] aspect-square">
+                                 {(() => {
+                                    const shareUrl = getProductShareURL(selectedProduct);
                                     const slug = selectedProduct ? selectedProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : "product";
-                                    const u = selectedProduct ? `${cleanedBase}?product=${encodeURIComponent(selectedProduct.id)}&amazon=${encodeURIComponent(slug)}` : window.location.href;
-                                    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}`, '_blank');
-                                  } },
-                                 { icon: Twitter, color: "hover:text-[#1DA1F2]", label: "Twitter", action: () => {
-                                    const text = `Check out this ${selectedProduct?.name || "product"}`;
-                                    const baseDomain = settings.websiteURL?.trim() || "https://smartstore.chinaonlinebdpurchase2.workers.dev/";
-                                    const cleanedBase = baseDomain.endsWith('/') ? baseDomain : `${baseDomain}/`;
-                                    const slug = selectedProduct ? selectedProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : "product";
-                                    const u = selectedProduct ? `${cleanedBase}?product=${encodeURIComponent(selectedProduct.id)}&amazon=${encodeURIComponent(slug)}` : window.location.href;
-                                    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(u)}`, '_blank');
-                                  } },
-                                 { icon: MessageCircle, color: "hover:text-[#25D366]", label: "WhatsApp", action: () => {
-                                    const baseDomain = settings.websiteURL?.trim() || "https://smartstore.chinaonlinebdpurchase2.workers.dev/";
-                                    const cleanedBase = baseDomain.endsWith('/') ? baseDomain : `${baseDomain}/`;
-                                    const slug = selectedProduct ? selectedProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : "product";
-                                    const u = selectedProduct ? `${cleanedBase}?product=${encodeURIComponent(selectedProduct.id)}&amazon=${encodeURIComponent(slug)}` : window.location.href;
-                                    const text = `Check out this ${selectedProduct?.name || "product"}: ${u}`;
-                                    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-                                  } },
-                                 { icon: shareCopied ? CheckCircle2 : LinkIcon, color: shareCopied ? "text-emerald-500 border-emerald-100 bg-emerald-50/50 hover:text-emerald-600" : "hover:text-blue-600", label: shareCopied ? "Copied!" : "Copy Link", action: () => { 
-                                    const baseDomain = settings.websiteURL?.trim() || "https://smartstore.chinaonlinebdpurchase2.workers.dev/";
-                                    const cleanedBase = baseDomain.endsWith('/') ? baseDomain : `${baseDomain}/`;
-                                    const slug = selectedProduct ? selectedProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : "product";
-                                    const u = selectedProduct ? `${cleanedBase}?product=${encodeURIComponent(selectedProduct.id)}&amazon=${encodeURIComponent(slug)}` : window.location.href;
-                                    navigator.clipboard.writeText(u); 
-                                    setShareCopied(true); 
-                                    setTimeout(() => setShareCopied(false), 2000); 
-                                 } }
-                              ].map((btn, i) => (
-                                 <button 
-                                   key={i}
-                                   onClick={btn.action}
-                                   className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all hover:scale-110 active:scale-95 hover:shadow-lg ${btn.label === "Copied!" ? "bg-emerald-50 border-emerald-200 text-emerald-500 hover:bg-emerald-100/55" : "bg-slate-50 border-slate-100 text-slate-400 hover:bg-white"}`}
-                                   title={btn.label}
-                                 >
-                                    <btn.icon size={18} />
-                                 </button>
-                              ))}
+                                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shareUrl)}&color=0f172a`;
+                                    return (
+                                       <div className="flex flex-col items-center gap-2">
+                                          <img 
+                                             src={qrUrl} 
+                                             alt={`${selectedProduct?.name} QR Code`} 
+                                             className="w-24 h-24 sm:w-28 sm:h-28 object-contain transition-transform duration-300 group-hover:scale-105 select-none pointer-events-none"
+                                             referrerPolicy="no-referrer"
+                                          />
+                                          <button 
+                                             onClick={async () => {
+                                                try {
+                                                   const res = await fetch(qrUrl);
+                                                   const blob = await res.blob();
+                                                   const blobUrl = URL.createObjectURL(blob);
+                                                   const a = document.createElement("a");
+                                                   a.href = blobUrl;
+                                                   a.download = `qrcode-${slug}.png`;
+                                                   document.body.appendChild(a);
+                                                   a.click();
+                                                   document.body.removeChild(a);
+                                                   URL.revokeObjectURL(blobUrl);
+                                                } catch (err) {
+                                                   window.open(qrUrl, '_blank');
+                                                }
+                                             }}
+                                             className="text-[9px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-500 transition-colors flex items-center gap-1 cursor-pointer pt-0.5 border border-slate-100 hover:bg-slate-50 px-2 py-0.5 rounded-md"
+                                          >
+                                             <Download size={10} /> Save QR
+                                          </button>
+                                       </div>
+                                    );
+                                 })()}
+                              </div>
+                              <p className="text-[9px] text-slate-400 text-center font-medium mt-2 leading-tight max-w-[180px]">
+                                 Point your mobile camera at this QR code to view this product on your smartphone.
+                              </p>
                            </div>
                         </div>
                      </div>
