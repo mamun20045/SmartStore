@@ -2593,8 +2593,7 @@ export default function App() {
                                        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
                                     } },
                                     { icon: MessageCircle, color: "hover:text-[#25D366]", label: "WhatsApp", action: () => {
-                                       const text = `Check out this ${selectedProduct?.name || "product"}: ${shareUrl}`;
-                                       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                                       window.open(`https://wa.me/?text=${encodeURIComponent(shareUrl)}`, '_blank');
                                     } },
                                     { icon: shareCopied ? CheckCircle2 : LinkIcon, color: shareCopied ? "text-emerald-500 border-emerald-100 bg-emerald-50/50 hover:text-emerald-600" : "hover:text-blue-600", label: shareCopied ? "Copied!" : "Copy Link", action: () => { 
                                        navigator.clipboard.writeText(shareUrl); 
