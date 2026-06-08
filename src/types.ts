@@ -20,6 +20,7 @@ export interface Product {
   images?: string[];
   createdAt?: string;
   updatedAt?: string;
+  pinterest_shared?: boolean;
 }
 
 export interface Settings {

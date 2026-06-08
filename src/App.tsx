@@ -44,6 +44,7 @@ import {
   ImagePlus,
   ThumbsUp,
   Info,
+  Pin,
   Facebook,
   Twitter,
   MessageCircle,
@@ -473,6 +474,7 @@ export default function App() {
     }
   }, [selectedProduct, view, isInitialLoading]);
   const [isManualAdding, setIsManualAdding] = useState(false);
+  const [adminPinterestFilter, setAdminPinterestFilter] = useState<'all' | 'shared' | 'not_shared'>('all');
   const [manualProduct, setManualProduct] = useState<Partial<Product>>({
     name: "",
     brand: "",
@@ -549,6 +551,15 @@ export default function App() {
   const totalPages = products ? Math.ceil(products.length / itemsPerPage) : 0;
   const currentItems = products ? products.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage) : [];
 
+  // Admin Catalog products with Pinterest shared state filter
+  const adminCatalogProducts = (products || []).filter(p => {
+    if (adminPinterestFilter === 'shared') return p.pinterest_shared === true;
+    if (adminPinterestFilter === 'not_shared') return !p.pinterest_shared;
+    return true;
+  });
+  const adminTotalPages = Math.ceil(adminCatalogProducts.length / itemsPerPage);
+  const adminCurrentItems = adminCatalogProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   const handleManualAdd = async () => {
     if (!manualProduct.name || !manualProduct.price) {
       alert("Please fill in at least the product name and price.");
@@ -571,7 +582,8 @@ export default function App() {
       images: manualProduct.images || [],
       rating: manualProduct.rating || "5.0",
       review_count: manualProduct.review_count || "1",
-      trust_badge: manualProduct.trust_badge || "Curated"
+      trust_badge: manualProduct.trust_badge || "Curated",
+      pinterest_shared: manualProduct.pinterest_shared || false
     };
 
     if (user) {
@@ -610,7 +622,8 @@ export default function App() {
         description_bullets: [],
         video_url: "",
         images: [],
-        id: undefined
+        id: undefined,
+        pinterest_shared: false
       });
     }
   };
@@ -838,6 +851,29 @@ export default function App() {
       handleFirestoreError(error, OperationType.DELETE, path);
     } finally {
       setDeletingProductId(null);
+    }
+  };
+
+  const togglePinterestShared = async (p: Product) => {
+    if (!p.id) return;
+    const updatedStatus = !p.pinterest_shared;
+    const updatedProduct = { ...p, pinterest_shared: updatedStatus };
+    
+    // Optimistic UI updates
+    setAllProducts(prev => prev.map(item => item.id === p.id ? updatedProduct : item));
+    setProducts(prev => prev ? prev.map(item => item.id === p.id ? updatedProduct : item) : null);
+    
+    const path = `products/${p.id}`;
+    try {
+      await updateDoc(doc(db, "products", p.id), {
+        pinterest_shared: updatedStatus
+      });
+    } catch (error) {
+      console.error("Failed to toggle Pinterest shared status:", error);
+      // Revert upon failure
+      setAllProducts(prev => prev.map(item => item.id === p.id ? p : item));
+      setProducts(prev => prev ? prev.map(item => item.id === p.id ? p : item) : null);
+      handleFirestoreError(error, OperationType.UPDATE, path);
     }
   };
 
@@ -1805,7 +1841,8 @@ export default function App() {
                                  images: [], 
                                  rating: "5.0",
                                  review_count: "1",
-                                 trust_badge: "Curated"
+                                 trust_badge: "Curated",
+                                 pinterest_shared: false
                               }); 
                               setIsManualAdding(true); 
                            }} className="px-5 py-3 rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-600/20">
@@ -1870,6 +1907,19 @@ export default function App() {
                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Rating (0-5)</label>
                                        <input type="text" value={manualProduct.rating} onChange={e => setManualProduct({...manualProduct, rating: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all font-light" placeholder="4.9" />
                                     </div>
+                                 </div>
+                                 <div className="pt-4 flex items-center gap-3">
+                                    <input 
+                                       type="checkbox" 
+                                       id="form_pinterest_shared"
+                                       checked={!!manualProduct.pinterest_shared} 
+                                       onChange={e => setManualProduct({...manualProduct, pinterest_shared: e.target.checked})} 
+                                       className="w-5 h-5 rounded-md border-white/15 bg-white/5 text-blue-500 focus:ring-0 cursor-pointer"
+                                    />
+                                    <label htmlFor="form_pinterest_shared" className="text-xs font-black uppercase tracking-widest text-slate-300 cursor-pointer flex items-center gap-2 select-none">
+                                       <Pin size={14} className={manualProduct.pinterest_shared ? "text-[#cb2027] fill-[#cb2027]" : "text-slate-500"} />
+                                       Shared on Pinterest (পিন্টারেস্টে শেয়ার করা হয়েছে)
+                                    </label>
                                  </div>
                               </div>
                               <div className="space-y-6">
@@ -1950,18 +2000,49 @@ export default function App() {
                         </div>
                      ) : (
                         <div className="p-0 overflow-x-auto">
+                           {/* Pinterest Selection Sub-toolbar */}
+                           <div className="px-8 py-4 border-b border-white/5 bg-white/[0.01] flex flex-wrap items-center justify-between gap-4">
+                              <div className="flex flex-wrap items-center gap-3">
+                                 <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Pinterest status:</span>
+                                 <div className="flex bg-slate-900 rounded-xl p-1 border border-white/5">
+                                    <button 
+                                       onClick={() => { setAdminPinterestFilter('all'); setCurrentPage(1); }}
+                                       className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${adminPinterestFilter === 'all' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                       All ({allProducts.length})
+                                    </button>
+                                    <button 
+                                       onClick={() => { setAdminPinterestFilter('shared'); setCurrentPage(1); }}
+                                       className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${adminPinterestFilter === 'shared' ? 'bg-[#cb2027] text-white shadow-md' : 'text-slate-400 hover:text-[#cb2027]'}`}
+                                    >
+                                       <Pin size={10} className="fill-current" />
+                                       Shared ({allProducts.filter(p => p.pinterest_shared).length})
+                                    </button>
+                                    <button 
+                                       onClick={() => { setAdminPinterestFilter('not_shared'); setCurrentPage(1); }}
+                                       className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${adminPinterestFilter === 'not_shared' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                       Not Shared ({allProducts.filter(p => !p.pinterest_shared).length})
+                                    </button>
+                                 </div>
+                              </div>
+                              <p className="text-[9px] font-black uppercase tracking-widest text-[#cb2027] bg-[#cb2027]/10 px-3 py-1 rounded-full border border-[#cb2027]/20 flex items-center gap-1">
+                                 <span className="w-1.5 h-1.5 rounded-full bg-[#cb2027] animate-pulse" />
+                                 Admin Eyes Only (শুধুমাত্র এডমিন দেখতে পারবে)
+                              </p>
+                           </div>
                            <table className="w-full">
                               <thead>
                                  <tr className="bg-white/[0.02] text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-white/5">
                                     <th className="px-8 py-5 text-left">Item</th>
                                     <th className="px-8 py-5 text-left">Category</th>
-                                    <th className="px-8 py-5 text-left">Price</th>
+                                    <th className="px-8 py-5 text-left">Price</th><th className="px-8 py-5 text-center">Pinterest</th>
                                     <th className="px-8 py-5 text-left">Status</th>
                                     <th className="px-8 py-5 text-right">Actions</th>
                                  </tr>
                               </thead>
                               <tbody className="divide-y divide-white/5">
-                                 {currentItems.map((p, i) => (
+                                 {adminCurrentItems.map((p, i) => (
                                     <tr key={p.id} className="group hover:bg-white/[0.02] transition-colors">
                                        <td className="px-8 py-5">
                                           <div className="flex items-center gap-4">
@@ -1977,7 +2058,7 @@ export default function App() {
                                        <td className="px-8 py-5">
                                           <span className="text-[10px] font-black uppercase text-slate-400 bg-white/5 px-3 py-1 rounded-full border border-white/5">{p.category}</span>
                                        </td>
-                                       <td className="px-8 py-5 text-sm font-black text-white">${p.price}</td>
+                                       <td className="px-8 py-5 text-sm font-black text-white">${p.price}</td><td className="px-8 py-5 text-center"><button onClick={() => togglePinterestShared(p)} title={p.pinterest_shared ? "Shared on Pinterest" : "Not shared"} className={`inline-flex items-center justify-center p-2 rounded-xl transition-all ${p.pinterest_shared ? "bg-[#cb2027]/25 text-white border border-[#cb2027]/40 shadow-lg" : "bg-white/5 text-slate-500 hover:text-slate-300 border border-transparent"}`}><Pin size={16} className={p.pinterest_shared ? "text-[#cb2027] fill-current" : ""} /></button></td>
                                        <td className="px-8 py-5">
                                           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-400">
                                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -2024,7 +2105,7 @@ export default function App() {
                            {/* Pagination Bar */}
                            <div className="p-8 bg-white/[0.02] border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
                               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                 Displaying {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, products?.length || 0)} of {products?.length || 0} Products
+                                 Displaying {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, adminCatalogProducts.length)} of {adminCatalogProducts.length} Products
                               </p>
                               <div className="flex gap-3">
                                  <button 
@@ -2035,7 +2116,7 @@ export default function App() {
                                     Previous
                                  </button>
                                  <button 
-                                    disabled={currentPage === totalPages}
+                                    disabled={currentPage === adminTotalPages || adminTotalPages === 0}
                                     onClick={() => setCurrentPage(prev => prev + 1)}
                                     className="px-6 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 shadow-xl shadow-blue-600/20 disabled:opacity-30 transition-all"
                                  >
