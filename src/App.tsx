@@ -1129,11 +1129,11 @@ export default function App() {
                 <img 
                    src={(!settings.heroBgURL || settings.heroBgURL.includes("images.unsplash.com/photo-1558002038-1055907df827")) ? customHeroBanner : settings.heroBgURL} 
                    alt="Modern Smart Lifestyle" 
-                   className="w-full h-full object-cover opacity-30 select-none pointer-events-none filter brightness-50"
+                   className="w-full h-full object-cover opacity-85 select-none pointer-events-none filter brightness-100"
                    referrerPolicy="no-referrer"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#050b18] via-[#050b18]/70 to-[#050b18]/20" />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#050b18] via-[#050b18]/40 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050b18] via-transparent to-[#050b18]/15" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#050b18] via-[#050b18]/75 md:via-[#050b18]/50 to-transparent" />
              </div>
 
              {/* Hero Content */}
