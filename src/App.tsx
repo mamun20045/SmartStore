@@ -870,6 +870,47 @@ export default function App() {
 
   useEffect(() => {
     const loadProducts = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const productId = urlParams.get('product');
+      const amazonSlug = urlParams.get('amazon');
+
+      let preselectedProduct: Product | null = null;
+
+      // 1. If we have a direct document ID in URL, fetch it immediately to show individual product instantly!
+      // This supports sharing any of "thousands of products" without waiting for the full catalogue fetch.
+      if (productId) {
+        try {
+          const docRef = doc(db, "products", productId);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            preselectedProduct = { ...docSnap.data(), id: docSnap.id } as Product;
+            setSelectedProduct(preselectedProduct);
+            setView('product');
+            setIsInitialLoading(false); // Unblock screen to display individual item immediately
+            console.log("Direct product loaded via deep-link:", preselectedProduct.name);
+          }
+        } catch (e) {
+          console.error("Direct deep-link product fetch failed:", e);
+        }
+      }
+
+      // If we only have amazon-slug and it looks like a Firestore doc ID (auto-generated usually 20 chars)
+      if (!preselectedProduct && amazonSlug && amazonSlug.length >= 15 && !amazonSlug.includes('-')) {
+        try {
+          const docRef = doc(db, "products", amazonSlug);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            preselectedProduct = { ...docSnap.data(), id: docSnap.id } as Product;
+            setSelectedProduct(preselectedProduct);
+            setView('product');
+            setIsInitialLoading(false);
+            console.log("Direct product loaded via amazonSlug doc ID:", preselectedProduct.name);
+          }
+        } catch (e) {
+          console.error("Direct deep-link slug doc fetch failed:", e);
+        }
+      }
+
       try {
         const querySnapshot = await getDocs(collection(db, "products"));
         const loadedProducts = querySnapshot.docs.map(doc => ({
@@ -889,21 +930,28 @@ export default function App() {
         setIsInitialLoading(false);
         console.log("Products loaded from Firestore:", loadedProducts.length);
 
-        // Deep linking support
-        const urlParams = new URLSearchParams(window.location.search);
-        const productId = urlParams.get('product');
-        const amazonSlug = urlParams.get('amazon');
+        // 2. Resilient falling back or refining the deep linking:
+        let foundProduct = preselectedProduct;
         
-        let foundProduct = null;
-        if (productId) {
+        if (!foundProduct && productId) {
           foundProduct = loadedProducts.find(p => p.id === productId || p.asin === productId);
         }
         
         if (!foundProduct && amazonSlug) {
+          // Attempt 1: Exact match on slug, ID, or ASIN
           foundProduct = loadedProducts.find(p => {
-            const slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-            return slug === amazonSlug || p.id === amazonSlug;
+             const slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+             return slug === amazonSlug || p.id === amazonSlug || p.asin === amazonSlug;
           });
+          
+          // Attempt 2: Flexible search / keyword / category-based lookup to find any matching shoes/gadgets
+          if (!foundProduct) {
+             foundProduct = loadedProducts.find(p => {
+                const slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+                const cleanSlug = amazonSlug.toLowerCase();
+                return slug.includes(cleanSlug) || cleanSlug.includes(slug) || p.name.toLowerCase().includes(cleanSlug);
+             });
+          }
         }
         
         if (foundProduct) {
