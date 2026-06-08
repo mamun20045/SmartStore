@@ -54,9 +54,19 @@ async function fetchProductMetadata(productId: string) {
 function injectMetaTags(html: string, product: any, reqUrl: string): string {
   if (!product) return html;
   
-  const title = `${product.name} | USA Smart Gadget`;
-  const desc = product.description;
+  const name = (product.name || "Product").trim();
+  const priceStr = product.price ? ` - Price: $${product.price}` : "";
+  const title = `${name}${priceStr} | USA Smart Gadget`;
+  
+  const desc = product.description || `Check out the latest price for ${name} at USA Smart Gadget.`;
   const image = product.image_url || "";
+  
+  // Clean existing title and meta tags to avoid duplication that confuses crawlers
+  let cleanedHtml = html;
+  cleanedHtml = cleanedHtml.replace(/<title>.*?<\/title>/gi, "");
+  cleanedHtml = cleanedHtml.replace(/<meta\s+name=["']description["']\s+content=["'].*?["']\s*\/?>/gi, "");
+  cleanedHtml = cleanedHtml.replace(/<meta\s+property=["']og:.*?["']\s+content=["'].*?["']\s*\/?>/gi, "");
+  cleanedHtml = cleanedHtml.replace(/<meta\s+name=["']twitter:.*?["']\s+content=["'].*?["']\s*\/?>/gi, "");
   
   const metaTags = `
     <!-- Dynamic Open Graph Meta Tags for Facebook/Social Shares -->
@@ -73,11 +83,8 @@ function injectMetaTags(html: string, product: any, reqUrl: string): string {
     <meta name="twitter:image" content="${image}" />
   `;
   
-  // Replace standard <title> tag
-  let transformed = html.replace(/<title>.*?<\/title>/i, metaTags);
-  if (transformed === html) {
-    transformed = html.replace("<head>", `<head>${metaTags}`);
-  }
+  // Inject at the beginning of <head>
+  let transformed = cleanedHtml.replace("<head>", `<head>${metaTags}`);
   return transformed;
 }
 
