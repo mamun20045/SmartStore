@@ -1460,7 +1460,7 @@ export default function App() {
                 }}
               >
                 <div className="aspect-video bg-white p-4 relative flex items-center justify-center">
-                  <div className="absolute top-2 right-2 px-2 py-0.5 bg-blue-600 text-white text-[8px] font-black rounded uppercase">NEW</div>
+                  <div className="absolute top-2 right-2 px-2 py-0.5 bg-blue-600 text-white text-[8px] font-black rounded uppercase z-10">NEW</div>
                   {product.image_url && <img src={product.image_url} referrerPolicy="no-referrer" onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/600x400/0a1120/white?text=No+Image"; }} className="w-full h-full object-contain" />}
                 </div>
                 <div className="p-4 flex flex-col gap-3 items-start text-left">
@@ -1868,26 +1868,10 @@ export default function App() {
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Name</label>
                                     <input type="text" value={manualProduct.name} onChange={e => setManualProduct({...manualProduct, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all font-light" placeholder="Product Title" />
                                  </div>
-                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Price ($)</label>
-                                       <input type="text" value={manualProduct.price} onChange={e => setManualProduct({...manualProduct, price: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all" placeholder="299.99" />
-                                    </div>
-                                    <div className="space-y-2">
-                                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Category</label>
-                                       <select 
-                                          value={manualProduct.category} 
-                                          onChange={e => setManualProduct({...manualProduct, category: e.target.value})} 
-                                          className="w-full bg-slate-900 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all"
-                                       >
-                                          {CATEGORIES.map(c => (
-                                             <option key={c.id} value={c.name} className="bg-slate-900 text-white">
-                                                {c.name}
-                                             </option>
-                                          ))}
-                                       </select>
-                                    </div>
-                                 </div>
+                                                   <div className="space-y-2">
+                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Price ($)</label>
+                                     <input type="text" value={manualProduct.price} onChange={e => setManualProduct({...manualProduct, price: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all font-light" placeholder="299.99" />
+                                  </div>
                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Main Product Image (URL preferred)</label>
@@ -1898,7 +1882,7 @@ export default function App() {
                                        <input type="text" value={manualProduct.video_url} onChange={e => setManualProduct({...manualProduct, video_url: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all font-light" placeholder="https://..." />
                                     </div>
                                  </div>
-                                 <div className="grid grid-cols-2 gap-4">
+                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div className="space-y-2">
                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Brand</label>
                                        <input type="text" value={manualProduct.brand} onChange={e => setManualProduct({...manualProduct, brand: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all font-light" placeholder="e.g. Apple" />
@@ -1906,6 +1890,10 @@ export default function App() {
                                     <div className="space-y-2">
                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Rating (0-5)</label>
                                        <input type="text" value={manualProduct.rating} onChange={e => setManualProduct({...manualProduct, rating: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all font-light" placeholder="4.9" />
+                                    </div>
+                                    <div className="space-y-2">
+                                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Review Count (রিভিউ সংখ্যা)</label>
+                                       <input type="text" value={manualProduct.review_count} onChange={e => setManualProduct({...manualProduct, review_count: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-blue-500 transition-all font-light" placeholder="e.g. 234" />
                                     </div>
                                  </div>
                                  <div className="pt-4 flex items-center gap-3">
@@ -2042,7 +2030,7 @@ export default function App() {
                                  </tr>
                               </thead>
                               <tbody className="divide-y divide-white/5">
-                                 {adminCurrentItems.map((p, i) => (
+                                 {adminCurrentItems.map((p) => (
                                     <tr key={p.id} className="group hover:bg-white/[0.02] transition-colors">
                                        <td className="px-8 py-5">
                                           <div className="flex items-center gap-4">
@@ -2058,10 +2046,22 @@ export default function App() {
                                        <td className="px-8 py-5">
                                           <span className="text-[10px] font-black uppercase text-slate-400 bg-white/5 px-3 py-1 rounded-full border border-white/5">{p.category}</span>
                                        </td>
-                                       <td className="px-8 py-5 text-sm font-black text-white">${p.price}</td><td className="px-8 py-5 text-center"><button onClick={() => togglePinterestShared(p)} title={p.pinterest_shared ? "Shared on Pinterest" : "Not shared"} className={`inline-flex items-center justify-center p-2 rounded-xl transition-all ${p.pinterest_shared ? "bg-[#cb2027]/25 text-white border border-[#cb2027]/40 shadow-lg" : "bg-white/5 text-slate-500 hover:text-slate-300 border border-transparent"}`}><Pin size={16} className={p.pinterest_shared ? "text-[#cb2027] fill-current" : ""} /></button></td>
+                                       <td className="px-8 py-5 text-sm font-black text-white">${p.price}</td>
+                                       <td className="px-8 py-5 text-center">
+                                          <div className="flex items-center justify-center gap-1.5">
+                                             <button 
+                                                onClick={() => togglePinterestShared(p)} 
+                                                title={p.pinterest_shared ? "Shared on Pinterest" : "Not shared"} 
+                                                className={`inline-flex items-center justify-center p-2 rounded-xl transition-all ${p.pinterest_shared ? "bg-[#cb2027]/25 text-white border border-[#cb2027]/40 shadow-lg" : "bg-white/5 text-slate-500 hover:text-slate-300 border border-transparent"}`}
+                                             >
+                                                <Pin size={16} className={p.pinterest_shared ? "text-[#cb2027] fill-current" : ""} />
+                                             </button>
+
+                                          </div>
+                                       </td>
                                        <td className="px-8 py-5">
-                                          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-400">
-                                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#10b981]">
+                                             <div className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
                                              Active
                                           </div>
                                        </td>
@@ -2078,14 +2078,14 @@ export default function App() {
                                                     <button 
                                                        onClick={() => setConfirmDeleteId(null)}
                                                        className="px-3 py-2 rounded-lg bg-white/10 text-white text-[9px] font-black uppercase tracking-widest"
-                                                    >
+                                                  >
                                                        ESC
                                                     </button>
                                                  </div>
                                               ) : (
                                                  <>
                                                     <button onClick={() => { setSelectedProduct(p); setView('product'); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="p-2.5 rounded-xl bg-blue-400/5 text-blue-400 hover:bg-blue-400 hover:text-white transition-all"><Eye size={16} /></button>
-                                                    <button onClick={() => handleEditProduct(p)} className="p-2.5 rounded-xl bg-emerald-400/5 text-emerald-400 hover:bg-emerald-400 hover:text-white transition-all"><SettingsIcon size={16} /></button>
+                                                    <button onClick={() => handleEditProduct(p)} className="p-2.5 rounded-xl bg-[#10b981]/5 text-[#10b981] hover:bg-[#10b981] hover:text-white transition-all"><SettingsIcon size={16} /></button>
                                                     <button 
                                                        onClick={() => setConfirmDeleteId(p.id!)} 
                                                        disabled={deletingProductId === p.id}
@@ -2098,6 +2098,7 @@ export default function App() {
                                           </div>
                                        </td>
                                     </tr>
+                                    
                                  ))}
                               </tbody>
                            </table>
@@ -2694,6 +2695,8 @@ export default function App() {
                                  ));
                               })()}
                            </div>
+
+
 
                            {/* Deep Link QR Code Section */}
                            <div className="mt-5 pt-5 border-t border-slate-150 flex flex-col items-center font-sans">
