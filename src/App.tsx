@@ -452,6 +452,7 @@ export default function App() {
 
   // Sync browser URL with the selected product to enable easy copying & sharing of product deep links
   useEffect(() => {
+    if (isInitialLoading) return;
     try {
       const url = new URL(window.location.href);
       if (view === 'product' && selectedProduct) {
@@ -469,7 +470,7 @@ export default function App() {
     } catch (e) {
       console.error("Failed to update browser state:", e);
     }
-  }, [selectedProduct, view]);
+  }, [selectedProduct, view, isInitialLoading]);
   const [isManualAdding, setIsManualAdding] = useState(false);
   const [manualProduct, setManualProduct] = useState<Partial<Product>>({
     name: "",
