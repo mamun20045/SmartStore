@@ -119,6 +119,15 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+const getProductSlug = (name: string): string => {
+  let slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+  const slugParts = slug.split('-').filter(Boolean);
+  if (slugParts.length > 5) {
+    slug = slugParts.slice(0, 5).join('-');
+  }
+  return slug;
+};
+
 const CATEGORIES = [
   { id: "lighting", name: "Smart Lighting", icon: Zap, color: "text-yellow-400" },
   { id: "vacuums", name: "Robot Vacuums", icon: Package, color: "text-blue-400" },
@@ -459,7 +468,7 @@ export default function App() {
       const url = new URL(window.location.href);
       if (view === 'product' && selectedProduct) {
         url.searchParams.set('product', selectedProduct.id);
-        const slug = selectedProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        const slug = getProductSlug(selectedProduct.name);
         url.searchParams.set('amazon', slug);
         window.history.replaceState({ productId: selectedProduct.id }, '', url.toString());
       } else if (view === 'home') {
@@ -978,14 +987,14 @@ export default function App() {
         if (!foundProduct && amazonSlug) {
           // Attempt 1: Exact match on slug, ID, or ASIN
           foundProduct = loadedProducts.find(p => {
-             const slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+             const slug = getProductSlug(p.name);
              return slug === amazonSlug || p.id === amazonSlug || p.asin === amazonSlug;
           });
           
           // Attempt 2: Flexible search / keyword / category-based lookup to find any matching shoes/gadgets
           if (!foundProduct) {
              foundProduct = loadedProducts.find(p => {
-                const slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+                const slug = getProductSlug(p.name);
                 const cleanSlug = amazonSlug.toLowerCase();
                 return slug.includes(cleanSlug) || cleanSlug.includes(slug) || p.name.toLowerCase().includes(cleanSlug);
              });
@@ -1010,7 +1019,7 @@ export default function App() {
     const isPlaceholder = !baseDomain || baseDomain.includes("chinaonlinebdpurchase2.workers.dev");
     const activeDomain = isPlaceholder ? window.location.origin : baseDomain;
     const cleanedBase = activeDomain.endsWith('/') ? activeDomain : `${activeDomain}/`;
-    const slug = product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    const slug = getProductSlug(product.name);
     return `${cleanedBase}?product=${encodeURIComponent(product.id)}&amazon=${encodeURIComponent(slug)}`;
   };
 
@@ -2708,7 +2717,7 @@ export default function App() {
                               <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm hover:border-slate-200 transition-all flex flex-col items-center justify-center relative group w-full max-w-[170px] aspect-square">
                                  {(() => {
                                     const shareUrl = getProductShareURL(selectedProduct);
-                                    const slug = selectedProduct ? selectedProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : "product";
+                                    const slug = selectedProduct ? getProductSlug(selectedProduct.name) : "product";
                                     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shareUrl)}&color=0f172a`;
                                     return (
                                        <div className="flex flex-col items-center gap-2">
