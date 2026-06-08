@@ -131,7 +131,8 @@ const DEFAULT_SETTINGS: Settings = {
   adsterraKey: "bec4d3245746ed2be5b9f8aa8cd14ce2",
   adsterraCode: "",
   adsterraKey2: "",
-  adsterraCode2: ""
+  adsterraCode2: "",
+  websiteURL: "https://smartstore.chinaonlinebdpurchase2.workers.dev/"
 };
 
 const parsePrice = (priceStr: string | undefined) => {
@@ -193,6 +194,7 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [view, setView] = useState<'home' | 'product' | 'admin'>('home');
+  const [shareCopied, setShareCopied] = useState(false);
   const [adminSubView, setAdminSubView] = useState<'overview' | 'products' | 'settings' | 'profile'>('overview');
   const [topProducts, setTopProducts] = useState<any[]>([]);
   const [visitorStats, setVisitorStats] = useState<any[]>([]);
@@ -442,6 +444,24 @@ export default function App() {
       setMainImage(selectedProduct.image_url);
     }
   }, [selectedProduct]);
+
+  // Sync browser URL with the selected product to enable easy copying & sharing of product deep links
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (view === 'product' && selectedProduct) {
+        url.searchParams.set('product', selectedProduct.id);
+        window.history.replaceState({ productId: selectedProduct.id }, '', url.toString());
+      } else if (view === 'home') {
+        if (url.searchParams.has('product')) {
+          url.searchParams.delete('product');
+          window.history.replaceState({}, '', url.toString());
+        }
+      }
+    } catch (e) {
+      console.error("Failed to update browser state:", e);
+    }
+  }, [selectedProduct, view]);
   const [isManualAdding, setIsManualAdding] = useState(false);
   const [manualProduct, setManualProduct] = useState<Partial<Product>>({
     name: "",
@@ -2015,6 +2035,18 @@ export default function App() {
                                   </div>
                                </div>
 
+                               <div className="space-y-3 mt-4">
+                                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Website URL (Store Domain)</label>
+                                  <input 
+                                     type="url" 
+                                     value={settings.websiteURL || ""}
+                                     onChange={(e) => setSettings({ ...settings, websiteURL: e.target.value })}
+                                     className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 text-white font-mono text-base focus:border-blue-500 outline-none transition-all"
+                                     placeholder="https://smartstore.chinaonlinebdpurchase2.workers.dev/"
+                                  />
+                                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-left">This domain will be used to generate localized sharing and product deep-links for your store.</p>
+                               </div>
+
                                <div className="space-y-6 mt-12 bg-emerald-500/5 border border-emerald-500/10 rounded-3xl p-8">
                                   <div className="flex items-center gap-3 mb-2">
                                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
@@ -2443,15 +2475,43 @@ export default function App() {
                            <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Share This Product</h4>
                            <div className="flex items-center justify-center gap-3">
                               {[
-                                 { icon: Facebook, color: "hover:text-[#1877F2]", label: "Facebook", action: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank') },
-                                 { icon: Twitter, color: "hover:text-[#1DA1F2]", label: "Twitter", action: () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this ${selectedProduct?.name}: `)}&url=${encodeURIComponent(window.location.href)}`, '_blank') },
-                                 { icon: MessageCircle, color: "hover:text-[#25D366]", label: "WhatsApp", action: () => window.open(`https://wa.me/?text=${encodeURIComponent(`Check out this ${selectedProduct?.name}: ${window.location.href}`)}`, '_blank') },
-                                 { icon: LinkIcon, color: "hover:text-blue-600", label: "Copy Link", action: () => { navigator.clipboard.writeText(window.location.href); alert("Link copied to clipboard!"); } }
+                                 { icon: Facebook, color: "hover:text-[#1877F2]", label: "Facebook", action: () => {
+                                    const baseDomain = settings.websiteURL?.trim() || "https://smartstore.chinaonlinebdpurchase2.workers.dev/";
+                                    const cleanedBase = baseDomain.endsWith('/') ? baseDomain : `${baseDomain}/`;
+                                    const slug = selectedProduct ? selectedProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : "product";
+                                    const u = selectedProduct ? `${cleanedBase}?product=${encodeURIComponent(selectedProduct.id)}&amazon=${encodeURIComponent(slug)}` : window.location.href;
+                                    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}`, '_blank');
+                                  } },
+                                 { icon: Twitter, color: "hover:text-[#1DA1F2]", label: "Twitter", action: () => {
+                                    const text = `Check out this ${selectedProduct?.name || "product"}`;
+                                    const baseDomain = settings.websiteURL?.trim() || "https://smartstore.chinaonlinebdpurchase2.workers.dev/";
+                                    const cleanedBase = baseDomain.endsWith('/') ? baseDomain : `${baseDomain}/`;
+                                    const slug = selectedProduct ? selectedProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : "product";
+                                    const u = selectedProduct ? `${cleanedBase}?product=${encodeURIComponent(selectedProduct.id)}&amazon=${encodeURIComponent(slug)}` : window.location.href;
+                                    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(u)}`, '_blank');
+                                  } },
+                                 { icon: MessageCircle, color: "hover:text-[#25D366]", label: "WhatsApp", action: () => {
+                                    const baseDomain = settings.websiteURL?.trim() || "https://smartstore.chinaonlinebdpurchase2.workers.dev/";
+                                    const cleanedBase = baseDomain.endsWith('/') ? baseDomain : `${baseDomain}/`;
+                                    const slug = selectedProduct ? selectedProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : "product";
+                                    const u = selectedProduct ? `${cleanedBase}?product=${encodeURIComponent(selectedProduct.id)}&amazon=${encodeURIComponent(slug)}` : window.location.href;
+                                    const text = `Check out this ${selectedProduct?.name || "product"}: ${u}`;
+                                    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                                  } },
+                                 { icon: shareCopied ? CheckCircle2 : LinkIcon, color: shareCopied ? "text-emerald-500 border-emerald-100 bg-emerald-50/50 hover:text-emerald-600" : "hover:text-blue-600", label: shareCopied ? "Copied!" : "Copy Link", action: () => { 
+                                    const baseDomain = settings.websiteURL?.trim() || "https://smartstore.chinaonlinebdpurchase2.workers.dev/";
+                                    const cleanedBase = baseDomain.endsWith('/') ? baseDomain : `${baseDomain}/`;
+                                    const slug = selectedProduct ? selectedProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : "product";
+                                    const u = selectedProduct ? `${cleanedBase}?product=${encodeURIComponent(selectedProduct.id)}&amazon=${encodeURIComponent(slug)}` : window.location.href;
+                                    navigator.clipboard.writeText(u); 
+                                    setShareCopied(true); 
+                                    setTimeout(() => setShareCopied(false), 2000); 
+                                 } }
                               ].map((btn, i) => (
                                  <button 
                                    key={i}
                                    onClick={btn.action}
-                                   className={`w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 transition-all hover:scale-110 active:scale-95 hover:bg-white hover:shadow-lg ${btn.color}`}
+                                   className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all hover:scale-110 active:scale-95 hover:shadow-lg ${btn.label === "Copied!" ? "bg-emerald-50 border-emerald-200 text-emerald-500 hover:bg-emerald-100/55" : "bg-slate-50 border-slate-100 text-slate-400 hover:bg-white"}`}
                                    title={btn.label}
                                  >
                                     <btn.icon size={18} />
